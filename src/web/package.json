@@ -1,0 +1,32 @@
+{
+  "name": "minishogi4",
+  "version": "1.0.0",
+  "description": "This is a 4x4 Minishogi game where you can play against a \"Perfect AI\" that plays optimally using a pre-computed endgame database. The application runs on Cloudflare Pages with Cloudflare D1 for the database.",
+  "main": "game.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.10",
+    "@types/three": "^0.182.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "pages:dev": "cp wrangler.public.toml wrangler.toml && npx wrangler pages dev .",
+    "prepages:deploy": "node scripts/validate_wrangler_private.mjs",
+    "pages:deploy": "cp wrangler.private.toml wrangler.toml && npx wrangler pages deploy ./dist",
+    "db:setup": "node scripts/setup_local_d1.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@tweenjs/tween.js": "^25.0.0",
+    "three": "^0.182.0"
+  }
+}

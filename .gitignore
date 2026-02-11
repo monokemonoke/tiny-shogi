@@ -1,0 +1,12 @@
+src/web/node_modules/
+src/web/dist/
+src/web/.wrangler/
+src/web/data/
+src/web/public/assets/*.mp3
+src/web/wrangler.private.toml
+src/solver/target/
+src/solver/data/
+.DS_Store
+*.log
+src/web/.env*
+!src/web/.env.example

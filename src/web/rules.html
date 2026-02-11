@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tiny 将棋 ルール</title>
+    <meta property="og:title" content="Tiny 将棋 ルール">
+    <meta property="og:description" content="Tiny 将棋 (4x4) の遊び方。勝利条件、駒の動き、初期配置などを解説。">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Tiny 将棋">
+    <meta property="og:image" content="/ogp.webp">
+    <meta name="twitter:image" content="/ogp.webp">
+    <meta name="twitter:card" content="summary_large_image">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        #bg-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .rules-box {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 40px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #4E342E;
+            text-shadow: none;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        h2 {
+            margin-top: 30px;
+            border-bottom: 2px solid #D7CCC8;
+            padding-bottom: 10px;
+            color: #5D4037;
+            font-size: 1.8rem;
+        }
+
+        h3 {
+            margin-top: 25px;
+            color: #555;
+            font-weight: bold;
+            font-size: 1.4rem;
+        }
+
+        p,
+        li {
+            line-height: 1.8;
+            color: #444;
+            font-size: 1.1rem;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+            background: #6D4C41;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #5D4037;
+            transform: translateY(-2px);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .rules-box {
+                padding: 25px 20px;
+                border-radius: 6px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 20px;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+                margin-top: 25px;
+            }
+
+            h3 {
+                font-size: 1.3rem;
+                margin-top: 20px;
+            }
+
+            p,
+            li {
+                font-size: 1.05rem;
+                line-height: 1.6;
+            }
+
+            .back-btn {
+                padding: 12px 30px;
+                font-size: 1rem;
+            }
+        }
+
+        /* 3D Scene Styles (Minimal) */
+        .piece-text {
+            font-family: "HiraMinProN-W6", "Hiragino Mincho ProN", "Yu Mincho", serif;
+            font-weight: bold;
+            text-align: center;
+            pointer-events: none;
+            user-select: none;
+            font-size: 150px;
+            width: 180px;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a1a;
+            text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .promoted-text {
+            color: #b71c1c;
+        }
+    </style>
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/", "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js" } }
+    </script>
+    <script type="module">
+        const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+
+        if (GA_MEASUREMENT_ID) {
+            const gaScript = document.createElement('script');
+            gaScript.async = true;
+            gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+            document.head.appendChild(gaScript);
+
+            window.dataLayer = window.dataLayer || [];
+            function gtag() { window.dataLayer.push(arguments); }
+            gtag('js', new Date());
+            gtag('config', GA_MEASUREMENT_ID);
+        }
+    </script>
+</head>
+
+<body>
+    <div id="bg-container"></div>
+
+    <div class="container">
+        <div class="rules-box">
+            <h1>Tiny 将棋の遊び方</h1>
+
+            <p>Tiny 将棋 は、4x4 の小さな盤面で遊ぶミニ将棋です。<br>
+                短時間で決着がつくため、気軽に奥深い駆け引きを楽しめます。</p>
+
+            <h2>勝利条件</h2>
+            <p>以下のいずれかの状態にすると勝ちになります。</p>
+            <ul>
+                <li><strong>詰み</strong>: 相手の王を捕まえられる状態にする（王が逃げられない）。</li>
+                <li><strong>手詰まり</strong>: 相手がルールに従って動かせる手がなくなる。</li>
+            </ul>
+            <p>※ 同じ局面が4回続いた場合（千日手）は引き分けとなります。</p>
+
+            <h3>合法手（ごうほうしゅ）とは？</h3>
+            <p>ルールに違反せずに指せる手のことを「合法手」と呼びます。<br>
+                例えば、自ら王を相手の駒の利きにさらすような手（自殺手）は指せません。<br>
+                相手の合法手をすべてなくせば勝利となります。</p>
+
+            <h2>初期配置</h2>
+            <p>手前があなた（先手）、奥が相手（後手）です。</p>
+            <div class="center">
+                <img src="/init_state.avif" alt="初期配置"
+                    style="width: 100%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+            </div>
+
+            <h2>盤面と駒</h2>
+            <p>4x4 の盤面と、以下の3種類の駒を使います。駒の動きはすべて本将棋と同じです。</p>
+
+            <h3>王（おう）</h3>
+            <div class="center">
+                <img src="/ou.avif" alt="王の動き"
+                    style="width: 100%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+            </div>
+            <p>全方向に1マス動けます。</p>
+
+            <h3>金（きん）</h3>
+            <div class="center">
+                <img src="/kin.avif" alt="金の動き"
+                    style="width: 100%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+            </div>
+            <p>縦横と斜め前に1マス動けます。</p>
+
+            <h3>角（かく）</h3>
+            <div class="center">
+                <img src="/kaku.avif" alt="角の動き"
+                    style="width: 100%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+            </div>
+            <p>斜めにどこまでも動けます。</p>
+
+            <h3>馬（うま） ※角が成った駒</h3>
+            <div class="center">
+                <img src="/uma.avif" alt="馬の動き"
+                    style="width: 100%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+            </div>
+            <p>馬は、角の動きに加えて縦横1マスにも動けます。</p>
+
+            <h2>ルールのポイント</h2>
+
+            <h3>1. 持ち駒</h3>
+            <p>相手の駒を取ると「持ち駒」になります。<br>
+                自分の番に、盤上の空いている好きなマスに打つ（置く）ことができます。<br>
+            </p>
+            <div class="center">
+                <video data-src="/mochigoma.mp4" class="lazy-video" loop muted playsinline
+                    style="width: 100%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 20px 0;"></video>
+            </div>
+
+            <h3>2. 成り (パワーアップ)</h3>
+            <p>「角」は、相手の陣地（一番奥の1列）に入るとき、または出るときに「馬」に成ることができます。</p>
+            <div class="center">
+                <video data-src="/nari.mp4" class="lazy-video" loop muted playsinline
+                    style="width: 100%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 20px 0;"></video>
+            </div>
+            <p>金と王は成ることができません。<br>
+                成るかどうかは選べますが、一度成ると元には戻れません。相手に取られると「角」に戻ります。</p>
+
+            <div class="center">
+                <a href="index.html" class="back-btn">戻る</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var lazyVideos = [].slice.call(document.querySelectorAll("video.lazy-video"));
+
+            if ("IntersectionObserver" in window) {
+                var lazyVideoObserver = new IntersectionObserver(function (entries, observer) {
+                    entries.forEach(function (video) {
+                        if (video.isIntersecting) {
+                            for (var source in video.target.children) {
+                                var videoSource = video.target.children[source];
+                                if (typeof videoSource.tagName === "string" && videoSource.tagName === "SOURCE") {
+                                    videoSource.src = videoSource.dataset.src;
+                                }
+                            }
+
+                            video.target.src = video.target.dataset.src;
+                            video.target.load();
+                            video.target.play().catch(e => console.log('Auto-play failed:', e));
+                            video.target.classList.remove("lazy-video");
+                            lazyVideoObserver.unobserve(video.target);
+                        }
+                    });
+                });
+
+                lazyVideos.forEach(function (lazyVideo) {
+                    lazyVideoObserver.observe(lazyVideo);
+                });
+            } else {
+                // Fallback for older browsers
+                lazyVideos.forEach(function (video) {
+                    video.src = video.dataset.src;
+                    video.load();
+                });
+            }
+        });
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+        import * as TWEEN from '@tweenjs/tween.js';
+
+        // --- Constants & Config ---
+        const CONFIG = {
+            ROWS: 4, COLS: 4, CELL_SIZE: 2.0, BOARD_PADDING: 0.8,
+            BOARD_THICKNESS: 1.5, TABLE_HEIGHT: 1.2
+        };
+        CONFIG.GRID_WIDTH = CONFIG.COLS * CONFIG.CELL_SIZE;
+        CONFIG.GRID_HEIGHT = CONFIG.ROWS * CONFIG.CELL_SIZE;
+        CONFIG.BOARD_WIDTH = CONFIG.GRID_WIDTH + CONFIG.BOARD_PADDING * 2;
+        CONFIG.BOARD_HEIGHT = CONFIG.GRID_HEIGHT + CONFIG.BOARD_PADDING * 2;
+
+        const SENTE = 'sente', GOTE = 'gote';
+        const PIECE_TYPES = {
+            OU: { name: '王', moves: [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] },
+            KIN: { name: '金', moves: [[0, -1], [1, -1], [-1, -1], [1, 0], [-1, 0], [0, 1]] },
+            KAKU: { name: '角', moves: [[1, 1], [1, -1], [-1, 1], [-1, -1]], range: true },
+            UMA: { name: '馬', moves: [[1, 1], [1, -1], [-1, 1], [-1, -1], [0, 1], [0, -1], [1, 0], [-1, 0]], range: true, slidingPart: [[1, 1], [1, -1], [-1, 1], [-1, -1]] }
+        };
+
+        // --- State ---
+        const GameState = {
+            board: [],
+            hands: { [SENTE]: [], [GOTE]: [] },
+            turn: SENTE,
+            reset() {
+                this.board = Array.from({ length: CONFIG.ROWS }, () => Array(CONFIG.COLS).fill(null));
+                this.hands = { [SENTE]: [], [GOTE]: [] };
+                this.turn = SENTE;
+            }
+        };
+
+        // --- Logic Wrapper (Simplified) ---
+        const ShogiLogic = {
+            initBoard(state) {
+                state.reset();
+                state.board[0][1] = { type: 'KAKU', owner: GOTE, promoted: false };
+                state.board[0][2] = { type: 'KIN', owner: GOTE, promoted: false };
+                state.board[0][3] = { type: 'OU', owner: GOTE, promoted: false };
+                state.board[3][0] = { type: 'OU', owner: SENTE, promoted: false };
+                state.board[3][1] = { type: 'KIN', owner: SENTE, promoted: false };
+                state.board[3][2] = { type: 'KAKU', owner: SENTE, promoted: false };
+            },
+
+            isPseudoLegalMove(sel, tx, ty, currentBoard) {
+                if (sel.type === 'board') {
+                    const p = sel.piece;
+                    if (currentBoard[ty][tx]?.owner === p.owner) return false;
+                    let def = PIECE_TYPES[p.type];
+                    if (p.promoted && p.type === 'KAKU') def = PIECE_TYPES.UMA;
+                    const dx = tx - sel.x, dy = ty - sel.y;
+                    if (def.range) {
+                        const ax = Math.abs(dx), ay = Math.abs(dy);
+                        const signX = Math.sign(dx), signY = Math.sign(dy);
+                        let isSliding = false;
+                        if (def.slidingPart) {
+                            const matchesSlide = def.slidingPart.some(m => {
+                                const mx = p.owner === SENTE ? m[0] : -m[0];
+                                const my = p.owner === SENTE ? m[1] : -m[1];
+                                if ((mx === 0 && dx !== 0) || (my === 0 && dy !== 0)) return false;
+                                if ((mx !== 0 && dx % mx !== 0) || (my !== 0 && dy % my !== 0)) return false;
+                                const sx = mx !== 0 ? dx / mx : 999;
+                                const sy = my !== 0 ? dy / my : 999;
+                                if (sx === 999) return sy > 0; if (sy === 999) return sx > 0;
+                                return sx === sy && sx > 0;
+                            });
+                            isSliding = matchesSlide;
+                        } else {
+                            isSliding = (ax === ay && ax > 0);
+                        }
+                        if (isSliding) {
+                            let cx = sel.x + signX, cy = sel.y + signY;
+                            while (cx !== tx || cy !== ty) {
+                                if (currentBoard[cy][cx] !== null) return false;
+                                cx += signX; cy += signY;
+                            }
+                            return true;
+                        }
+                        return def.moves.some(m => {
+                            const mx = p.owner === SENTE ? m[0] : -m[0];
+                            const my = p.owner === SENTE ? m[1] : -m[1];
+                            return dx === mx && dy === my;
+                        });
+                    } else {
+                        return def.moves.some(m => {
+                            const mx = p.owner === SENTE ? m[0] : -m[0];
+                            const my = p.owner === SENTE ? m[1] : -m[1];
+                            return dx === mx && dy === my;
+                        });
+                    }
+                }
+                if (sel.type === 'hand') {
+                    if (currentBoard[ty][tx]) return false;
+                    return true;
+                }
+                return false;
+            },
+
+            isLegalMove(sel, tx, ty, owner, currentBoard) {
+                if (!this.isPseudoLegalMove(sel, tx, ty, currentBoard)) return false;
+                const simBoard = JSON.parse(JSON.stringify(currentBoard));
+                if (sel.type === 'board') {
+                    const p = simBoard[sel.y][sel.x];
+                    simBoard[sel.y][sel.x] = null;
+                    simBoard[ty][tx] = p;
+                } else {
+                    simBoard[ty][tx] = { type: sel.pKey, owner: owner, promoted: false };
+                }
+                return !this.isKingInCheck(simBoard, owner);
+            },
+
+            isKingInCheck(simBoard, targetOwner) {
+                let kx = -1, ky = -1;
+                for (let y = 0; y < CONFIG.ROWS; y++) for (let x = 0; x < CONFIG.COLS; x++) {
+                    const p = simBoard[y][x];
+                    if (p && p.owner === targetOwner && p.type === 'OU') { kx = x; ky = y; break; }
+                }
+                if (kx === -1) return true;
+                const attacker = targetOwner === SENTE ? GOTE : SENTE;
+                for (let y = 0; y < CONFIG.ROWS; y++) for (let x = 0; x < CONFIG.COLS; x++) {
+                    const p = simBoard[y][x];
+                    if (p && p.owner === attacker) {
+                        const sel = { type: 'board', x, y, piece: p };
+                        if (this.isPseudoLegalMove(sel, kx, ky, simBoard)) return true;
+                    }
+                }
+                return false;
+            },
+
+            getRandomMove(state) {
+                const legalMoves = [];
+                const turn = state.turn;
+                // Board
+                for (let y = 0; y < CONFIG.ROWS; y++) for (let x = 0; x < CONFIG.COLS; x++) {
+                    const p = state.board[y][x];
+                    if (p && p.owner === turn) {
+                        const sel = { type: 'board', x, y, piece: p };
+                        for (let ty = 0; ty < CONFIG.ROWS; ty++) for (let tx = 0; tx < CONFIG.COLS; tx++) {
+                            if (this.isLegalMove(sel, tx, ty, turn, state.board)) {
+                                let promote = p.promoted;
+                                if (p.type === 'KAKU' && !p.promoted && ((ty === 3 && turn === GOTE) || (ty === 0 && turn === SENTE))) {
+                                    promote = Math.random() > 0.2;
+                                }
+                                legalMoves.push({ sel, tx, ty, promote });
+                            }
+                        }
+                    }
+                }
+                // Hand
+                state.hands[turn].forEach((k, i) => {
+                    const sel = { type: 'hand', index: i, pKey: k, owner: turn };
+                    for (let ty = 0; ty < CONFIG.ROWS; ty++) for (let tx = 0; tx < CONFIG.COLS; tx++) {
+                        if (!state.board[ty][tx] && this.isLegalMove(sel, tx, ty, turn, state.board)) {
+                            legalMoves.push({ sel, tx, ty, promote: false });
+                        }
+                    }
+                });
+                if (legalMoves.length === 0) return null;
+                return legalMoves[Math.floor(Math.random() * legalMoves.length)];
+            }
+        };
+
+        // --- View (Simplified) ---
+        const ShogiView = {
+            scene: null, camera: null, renderer: null, cssRenderer: null,
+            meshes: { board: [], pieces: [], hands: [], komadai: {} },
+
+            init() {
+                const container = document.getElementById('bg-container');
+                this.scene = new THREE.Scene();
+
+                this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(0, 10, 14);
+                this.camera.lookAt(0, -1, 0);
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true; this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+                container.appendChild(this.renderer.domElement);
+
+                this.cssRenderer = new CSS3DRenderer();
+                this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+                this.cssRenderer.domElement.style.position = 'absolute'; this.cssRenderer.domElement.style.top = 0;
+                this.cssRenderer.domElement.style.pointerEvents = 'none';
+                container.appendChild(this.cssRenderer.domElement);
+
+                this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+                const dl = new THREE.DirectionalLight(0xffffff, 1.2); dl.position.set(5, 15, 10); dl.castShadow = true;
+                this.scene.add(dl);
+                const pl = new THREE.PointLight(0xffad5f, 0.8); pl.position.set(0, 5, 0);
+                this.scene.add(pl);
+
+
+                this.createEnvironment();
+
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight; this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight); this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                this.animate();
+            },
+
+            createEnvironment() {
+                const tatami = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ map: this.createTexture('tatami'), roughness: 0.8, color: 0x888888 }));
+                tatami.rotation.x = -Math.PI / 2; tatami.position.y = -CONFIG.BOARD_THICKNESS - 0.1; tatami.receiveShadow = true; this.scene.add(tatami);
+
+                const wTex = this.createTexture('wood_light');
+                const mats = Array(6).fill(null).map((_, i) => new THREE.MeshStandardMaterial({ map: i === 2 ? this.createTexture('grid') : wTex, roughness: 0.2, metalness: 0.05 }));
+                const boardMesh = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.BOARD_WIDTH, CONFIG.BOARD_THICKNESS, CONFIG.BOARD_HEIGHT), mats);
+                boardMesh.position.set(0, -CONFIG.BOARD_THICKNESS / 2, 0); boardMesh.castShadow = true; boardMesh.receiveShadow = true; this.scene.add(boardMesh);
+
+                const dTex = this.createTexture('wood_dark'); const tMat = new THREE.MeshStandardMaterial({ map: dTex, roughness: 0.2, metalness: 0.05 });
+                const w = 4.0, d = 6.0, x = CONFIG.BOARD_WIDTH / 2 + w / 2 + 0.5;
+                const mkS = new THREE.Mesh(new THREE.BoxGeometry(w, CONFIG.TABLE_HEIGHT, d), tMat);
+                mkS.position.set(x, -CONFIG.BOARD_THICKNESS + CONFIG.TABLE_HEIGHT / 2, 1); mkS.castShadow = true; mkS.receiveShadow = true; this.scene.add(mkS);
+                const mkG = new THREE.Mesh(new THREE.BoxGeometry(w, CONFIG.TABLE_HEIGHT, d), tMat);
+                mkG.position.set(-x, -CONFIG.BOARD_THICKNESS + CONFIG.TABLE_HEIGHT / 2, -1); mkG.castShadow = true; mkG.receiveShadow = true; this.scene.add(mkG);
+            },
+
+            createTexture(type) {
+                if (type === 'tatami') {
+                    const c = document.createElement('canvas'); c.width = 256; c.height = 256; const ctx = c.getContext('2d');
+                    ctx.fillStyle = "#c8c290"; ctx.fillRect(0, 0, 256, 256);
+                    ctx.fillStyle = "#b8b280"; for (let y = 0; y < 256; y += 4) if ((y / 4) % 2 === 0) ctx.fillRect(0, y, 256, 2);
+                    ctx.fillStyle = "#2d4536"; ctx.fillRect(0, 0, 10, 256); ctx.fillRect(246, 0, 10, 256);
+                    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(8, 8); t.colorSpace = THREE.SRGBColorSpace; return t;
+                } else if (type === 'grid') {
+                    const cw = 1024, ch = Math.round(cw * (CONFIG.BOARD_HEIGHT / CONFIG.BOARD_WIDTH));
+                    const c = document.createElement('canvas'); c.width = cw; c.height = ch; const ctx = c.getContext('2d');
+                    ctx.fillStyle = "#D7A55F"; ctx.fillRect(0, 0, cw, ch);
+                    ctx.globalAlpha = 0.15; ctx.fillStyle = "#8d6e63"; for (let i = 0; i < 300; i++) ctx.fillRect(Math.random() * cw, 0, Math.random() * 5 + 2, ch);
+                    ctx.globalAlpha = 1.0;
+                    const dw = cw * (CONFIG.GRID_WIDTH / CONFIG.BOARD_WIDTH), dh = ch * (CONFIG.GRID_HEIGHT / CONFIG.BOARD_HEIGHT);
+                    const mx = (cw - dw) / 2, my = (ch - dh) / 2;
+                    ctx.strokeStyle = "#111"; ctx.lineWidth = 5; ctx.beginPath();
+                    const sx = dw / CONFIG.COLS, sy = dh / CONFIG.ROWS;
+                    for (let i = 1; i < CONFIG.COLS; i++) { ctx.moveTo(mx + i * sx, my); ctx.lineTo(mx + i * sx, my + dh); }
+                    for (let i = 1; i < CONFIG.ROWS; i++) { ctx.moveTo(mx, my + i * sy); ctx.lineTo(mx + dw, my + i * sy); }
+                    ctx.stroke(); ctx.strokeRect(mx, my, dw, dh);
+                    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+                } else {
+                    const c = document.createElement('canvas'); c.width = 512; c.height = 512; const ctx = c.getContext('2d');
+                    ctx.fillStyle = type === 'wood_dark' ? '#5d4037' : '#D7A55F'; ctx.fillRect(0, 0, 512, 512);
+                    ctx.globalAlpha = 0.1; ctx.fillStyle = type === 'wood_dark' ? '#3e2723' : '#B08040';
+                    for (let i = 0; i < 100; i++) ctx.fillRect(Math.random() * 512, 0, Math.random() * 50 + 10, 512);
+                    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+                }
+            },
+
+            render(state) {
+                this.meshes.pieces.forEach(g => { this.scene.remove(g); this.cleanupObj(g); }); this.meshes.pieces = [];
+                this.meshes.hands.forEach(g => { this.scene.remove(g); this.cleanupObj(g); }); this.meshes.hands = [];
+
+                const ox = (CONFIG.COLS - 1) * CONFIG.CELL_SIZE / 2, oz = (CONFIG.ROWS - 1) * CONFIG.CELL_SIZE / 2;
+                for (let y = 0; y < CONFIG.ROWS; y++) for (let x = 0; x < CONFIG.COLS; x++) {
+                    const p = state.board[y][x];
+                    if (p) {
+                        const g = this.createPieceObject(p);
+                        g.position.set(x * CONFIG.CELL_SIZE - ox, 0, y * CONFIG.CELL_SIZE - oz);
+                        if (p.owner === GOTE) g.rotation.y = Math.PI;
+                        this.scene.add(g); this.meshes.pieces.push(g);
+                    }
+                }
+                this.drawHand(SENTE, state); this.drawHand(GOTE, state);
+            },
+
+            drawHand(owner, state) {
+                const isS = owner === SENTE; const yPos = -CONFIG.BOARD_THICKNESS + CONFIG.TABLE_HEIGHT;
+                const hand = state.hands[owner];
+                const xOffset = CONFIG.BOARD_WIDTH / 2 + 2.0 + 0.5;
+                const sx = (isS ? xOffset : -xOffset) - 1.0; const sz = (isS ? 1.5 : -1.5) - 1.0;
+                hand.forEach((k, i) => {
+                    const g = this.createPieceObject({ type: k, owner: owner, promoted: false });
+                    const c = i % 2, r = Math.floor(i / 2);
+                    g.position.set(sx + c * 1.5, yPos, sz + r * 1.5);
+                    if (owner === GOTE) g.rotation.y = Math.PI;
+                    this.scene.add(g); this.meshes.hands.push(g);
+                });
+            },
+
+            createPieceObject(p) {
+                const g = new THREE.Group();
+                const s = new THREE.Shape();
+                s.moveTo(0, 0.9); s.lineTo(0.75, 0.4); s.lineTo(0.75 * 1.1, -0.9); s.lineTo(-0.75 * 1.1, -0.9); s.lineTo(-0.75, 0.4); s.lineTo(0, 0.9);
+                const geo = new THREE.ExtrudeGeometry(s, { depth: 0.45, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 3 });
+                const pos = geo.attributes.position;
+                for (let i = 0; i < pos.count; i++) if (pos.getZ(i) > 0.05) pos.setZ(i, pos.getZ(i) * Math.max(0.1, 1.0 - ((pos.getY(i) + 0.9) * 0.25)));
+                geo.computeVertexNormals();
+                const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: new THREE.Color(255 / 255, 174 / 255, 88 / 255), roughness: 0.4, metalness: 0.1 }));
+                m.rotation.x = -Math.PI / 2; m.castShadow = true; m.receiveShadow = true; g.add(m);
+
+                let t = PIECE_TYPES[p.type].name;
+                if (p.type === 'OU' && p.owner === SENTE) t = '玉';
+                if (p.promoted) { if (p.type === 'KAKU') t = '馬'; else t = '全'; }
+                const d = document.createElement('div'); d.className = 'piece-text';
+                if (p.promoted) d.classList.add('promoted-text'); d.textContent = t;
+                const c = new CSS3DObject(d); c.scale.set(0.007, 0.007, 0.007); c.position.set(0, 0.36, 0.1); c.rotation.x = -Math.PI / 2 - 0.15;
+                g.add(c); return g;
+            },
+
+            cleanupObj(g) {
+                g.traverse(c => {
+                    if (c.geometry) c.geometry.dispose();
+                    if (c.material) (Array.isArray(c.material) ? c.material : [c.material]).forEach(m => m.dispose());
+                    if (c.element && c.element.parentNode) c.element.parentNode.removeChild(c.element);
+                });
+            },
+
+            rotateCamera() {
+                const now = Date.now() * 0.0002;
+                const radius = 12;
+                this.camera.position.x = Math.sin(now) * radius;
+                this.camera.position.z = Math.cos(now) * radius;
+                this.camera.lookAt(0, -1, 0);
+            },
+
+            animate(t) {
+                requestAnimationFrame((t) => this.animate(t));
+                TWEEN.update(t);
+                this.rotateCamera();
+                this.renderer.render(this.scene, this.camera);
+                this.cssRenderer.render(this.scene, this.camera);
+            }
+        };
+
+        // --- Main Controller ---
+        const Main = {
+            init() {
+                ShogiLogic.initBoard(GameState);
+                ShogiView.init();
+                ShogiView.render(GameState);
+                this.lastMoveTime = Date.now();
+                this.autoPlayLoop();
+            },
+
+            autoPlayLoop() {
+                const now = Date.now();
+                if (now - this.lastMoveTime > 1500) {
+                    const move = ShogiLogic.getRandomMove(GameState);
+                    if (move) {
+                        this.executeMove(move);
+                        this.lastMoveTime = now;
+                    } else {
+                        setTimeout(() => {
+                            ShogiLogic.initBoard(GameState);
+                            ShogiView.render(GameState);
+                        }, 2000);
+                        this.lastMoveTime = now + 2000;
+                    }
+                }
+                requestAnimationFrame(() => this.autoPlayLoop());
+            },
+
+            executeMove(move) {
+                const turn = GameState.turn;
+                if (move.sel.type === 'board') {
+                    const p = move.sel.piece;
+                    p.promoted = move.promote;
+
+                    const target = GameState.board[move.ty][move.tx];
+                    if (target) {
+                        target.owner = turn;
+                        target.promoted = false;
+                        if (target.type === 'UMA') target.type = 'KAKU';
+                        GameState.hands[turn].push(target.type);
+                    }
+                    GameState.board[move.sel.y][move.sel.x] = null;
+                    GameState.board[move.ty][move.tx] = p;
+                } else {
+                    GameState.board[move.ty][move.tx] = { type: move.sel.pKey, owner: turn, promoted: false };
+                    GameState.hands[turn].splice(move.sel.index, 1);
+                }
+
+                GameState.turn = (turn === SENTE) ? GOTE : SENTE;
+                ShogiView.render(GameState);
+            }
+        };
+
+        Main.init();
+    </script>
+</body>
+
+</html>
