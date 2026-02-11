@@ -11,6 +11,9 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         game: resolve(__dirname, 'game.html'),
         rules: resolve(__dirname, 'rules.html'),
+        privacy: resolve(__dirname, 'privacy.html'),
+        credits: resolve(__dirname, 'credits.html'),
+        boardEditor: resolve(__dirname, 'board_editor.html'),
       },
       output: {
         manualChunks: {
