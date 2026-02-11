@@ -4,83 +4,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny 将棋</title>
-    <meta property="og:title" content="Tiny 将棋">
-    <meta property="og:description" content="4x4の小さな盤面で遊ぶミニ将棋。短時間で決着がつくため、気軽に奥深い駆け引きを楽しめます。">
-    <meta property="og:type" content="website">
+    <title>Tiny 将棋 プライバシーポリシー</title>
+    <meta property="og:title" content="Tiny 将棋 プライバシーポリシー">
+    <meta property="og:description" content="Tiny 将棋のプライバシーポリシー。Google Analytics の利用と個人情報の取り扱いを記載。">
+    <meta property="og:type" content="article">
     <meta property="og:site_name" content="Tiny 将棋">
     <meta property="og:image" content="/ogp.webp">
     <meta name="twitter:image" content="/ogp.webp">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="prefetch" href="game.html">
-    <link rel="prefetch" href="rules.html">
-    <link rel="prefetch" href="privacy.html">
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/", "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js" } }
+    </script>
     <style>
         body {
             margin: 0;
-            overflow: hidden;
+            padding: 0;
             background-color: #000;
             font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
-            height: 100vh;
-            color: #4E342E;
-            /* background-image: radial-gradient(circle at center, #222 0%, #000 100%); */
+            color: #333;
+            min-height: 100vh;
         }
 
         #bg-container {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 0;
             opacity: 0.6;
-            /* Dim the background for readability */
             pointer-events: none;
-            /* Let clicks pass through if needed, though menu is on top */
         }
 
-        .menu-wrapper {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .container {
+            position: relative;
             z-index: 10;
-            pointer-events: none;
-            /* Allow seeing through, but children need events */
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
         }
 
-        .menu-container {
+        .policy-box {
             background: rgba(255, 255, 255, 0.85);
-            /* Light semi-transparent */
             padding: 40px;
             border-radius: 8px;
-            border: 1px solid #D7CCC8;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
-            width: 90%;
-            pointer-events: auto;
-            /* Enable clicks on menu */
+            border: 1px solid #ccc;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(5px);
+            color: #333;
         }
 
         h1 {
-            font-size: 2.5rem;
-            margin-bottom: 40px;
+            font-size: 2.2rem;
+            margin-bottom: 24px;
             color: #4E342E;
-            text-shadow: none;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
+            text-align: center;
         }
 
-        .menu-btn {
-            display: block;
-            width: 100%;
-            padding: 15px 0;
-            margin-bottom: 20px;
+        p {
+            line-height: 1.8;
+            color: #444;
+            font-size: 1.1rem;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            line-height: 1.8;
+            color: #444;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 24px;
+            padding: 15px 40px;
             font-size: 1.2rem;
             font-weight: bold;
             color: #fff;
@@ -92,30 +94,15 @@
             transition: transform 0.2s, background 0.2s;
         }
 
-        .menu-btn:hover {
+        .back-btn:hover {
             background: #5D4037;
             transform: translateY(-2px);
         }
 
-        .menu-btn.secondary {
-            background: transparent;
-            border: 2px solid #6D4C41;
-            color: #6D4C41;
+        .center {
+            text-align: center;
         }
 
-        .menu-btn.secondary:hover {
-            background: rgba(109, 76, 65, 0.1);
-            border-color: #5D4037;
-            color: #5D4037;
-        }
-
-        .footer {
-            margin-top: 20px;
-            font-size: 0.8rem;
-            color: #6d4c41;
-        }
-
-        /* 3D Scene Styles */
         .piece-text {
             font-family: "HiraMinProN-W6", "Hiragino Mincho ProN", "Yu Mincho", serif;
             font-weight: bold;
@@ -135,42 +122,64 @@
         .promoted-text {
             color: #b71c1c;
         }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .policy-box {
+                padding: 25px 20px;
+                border-radius: 6px;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+                margin-bottom: 18px;
+            }
+
+            p,
+            li {
+                font-size: 1.05rem;
+                line-height: 1.6;
+            }
+
+            .back-btn {
+                padding: 12px 30px;
+                font-size: 1rem;
+            }
+        }
     </style>
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/", "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js" } }
-    </script>
     <script type="module">
-      const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+        const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
 
-      if (GA_MEASUREMENT_ID) {
-        const gaScript = document.createElement('script');
-        gaScript.async = true;
-        gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-        document.head.appendChild(gaScript);
+        if (GA_MEASUREMENT_ID) {
+            const gaScript = document.createElement('script');
+            gaScript.async = true;
+            gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+            document.head.appendChild(gaScript);
 
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { window.dataLayer.push(arguments); }
-        gtag('js', new Date());
-        gtag('config', GA_MEASUREMENT_ID);
-      }
+            window.dataLayer = window.dataLayer || [];
+            function gtag() { window.dataLayer.push(arguments); }
+            gtag('js', new Date());
+            gtag('config', GA_MEASUREMENT_ID);
+        }
     </script>
 </head>
 
 <body>
-
     <div id="bg-container"></div>
 
-    <div class="menu-wrapper">
-        <div class="menu-container">
-            <h1>Tiny 将棋</h1>
-            <a href="game.html" class="menu-btn">対局開始</a>
-            <a href="rules.html" class="menu-btn secondary">ルール説明</a>
-
-            <div class="footer">
-                <a href="https://github.com/monokemonoke" style="color: inherit; text-decoration: none;">&copy; 2026
-                    monokemonoke</a>
-                <span style="margin: 0 8px;">|</span>
-                <a href="privacy.html" style="color: inherit; text-decoration: none;">プライバシーポリシー</a>
+    <div class="container">
+        <div class="policy-box">
+            <h1>プライバシーポリシー</h1>
+            <p>Tiny 将棋では、以下の方針で情報を取り扱います。</p>
+            <ul>
+                <li>Google Analytics を利用してアクセス解析を行っています。</li>
+                <li>Google Analytics で取得される情報を除き、個人情報は収集しません。</li>
+            </ul>
+            <div class="center">
+                <a href="index.html" class="back-btn">戻る</a>
             </div>
         </div>
     </div>
@@ -566,7 +575,6 @@
 
         Main.init();
     </script>
-
 </body>
 
 </html>
