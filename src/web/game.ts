@@ -16,6 +16,11 @@ CONFIG.BOARD_WIDTH = CONFIG.GRID_WIDTH + CONFIG.BOARD_PADDING * 2;
 CONFIG.BOARD_HEIGHT = CONFIG.GRID_HEIGHT + CONFIG.BOARD_PADDING * 2;
 
 const SENTE = 'sente', GOTE = 'gote';
+const ASSET_BASE_URL = (() => {
+    const base = ((import.meta as any).env?.BASE_URL ?? '/') as string;
+    return base.endsWith('/') ? base : `${base}/`;
+})();
+const assetUrl = (fileName: string) => `${ASSET_BASE_URL}assets/${fileName}`;
 const PIECE_TYPES = {
     OU: { name: '王', moves: [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] },
     KIN: { name: '金', moves: [[0, -1], [1, -1], [-1, -1], [1, 0], [-1, 0], [0, 1]] },
@@ -728,11 +733,10 @@ const Main: any = {
     winRateMapper: new LogisticWinRateMapper(0.2, 25),
     currentEvalDisplay: null as EvalDisplay | null,
     gameOverGraphHoverIndex: null as number | null,
+    hasPlayedWelcomeSound: false,
 
     init() {
         this.initSounds();
-        // Play start sound
-        this.playSound('yorosiku');
 
         ShogiLogic.initBoard(GameState);
         ShogiView.init();
@@ -772,6 +776,11 @@ const Main: any = {
     },
 
     onPointerDown(e) {
+        if (!this.hasPlayedWelcomeSound) {
+            this.playSound('yorosiku');
+            this.hasPlayedWelcomeSound = true;
+        }
+
         // 振り返りモード中は操作無効
         if (GameState.reviewMode) return;
         
@@ -1430,9 +1439,9 @@ const Main: any = {
     },
     initSounds() {
 
-        this.sounds.oute = new Audio('assets/oute.mp3');
-        this.sounds.sokomade = new Audio('assets/sokomade.mp3');
-        this.sounds.yorosiku = new Audio('assets/yorosiku.mp3');
+        this.sounds.oute = new Audio(assetUrl('oute.mp3'));
+        this.sounds.sokomade = new Audio(assetUrl('sokomade.mp3'));
+        this.sounds.yorosiku = new Audio(assetUrl('yorosiku.mp3'));
     },
     playSound(key) {
         if (this.sounds[key]) {
@@ -1452,7 +1461,7 @@ const Main: any = {
             this.playSound('oute');
         } else {
             const soundIndex = Math.floor(Math.random() * 3) + 1;
-            const snd = new Audio(`assets/Shogi${soundIndex}.mp3`);
+            const snd = new Audio(assetUrl(`Shogi${soundIndex}.mp3`));
             snd.play().catch(() => { });
         }
     },
