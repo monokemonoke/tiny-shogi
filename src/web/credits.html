@@ -68,15 +68,44 @@
             font-size: 1.1rem;
         }
 
-        ul {
-            padding-left: 20px;
+        .credit-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
         }
 
-        li {
+        .credit-item {
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid #d8ccc5;
+            border-left: 6px solid #6D4C41;
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .credit-label {
+            display: block;
+            margin-bottom: 6px;
+            color: #4E342E;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 0.04em;
+        }
+
+        .credit-text {
             line-height: 1.8;
             color: #444;
-            font-size: 1.1rem;
-            margin-bottom: 8px;
+            font-size: 1.08rem;
+        }
+
+        .credit-text a {
+            color: #5D4037;
+            text-underline-offset: 2px;
+        }
+
+        .credit-text a:hover {
+            color: #3e2723;
         }
 
         .back-btn {
@@ -139,9 +168,18 @@
             }
 
             p,
-            li {
+            .credit-text {
                 font-size: 1.05rem;
                 line-height: 1.6;
+            }
+
+            .credit-item {
+                padding: 14px 14px;
+                margin-bottom: 12px;
+            }
+
+            .credit-label {
+                font-size: 0.95rem;
             }
 
             .back-btn {
@@ -173,8 +211,23 @@
     <div class="container">
         <div class="policy-box">
             <h1>クレジット</h1>
-            <p>このページでは、Tiny 将棋で使用している素材・ライブラリ・ツールの提供元を掲載します。</p>
-            <p>詳細は順次追記します。素材やライセンス表記に不備がある場合は、GitHub からご連絡ください。</p>
+            <p>Tiny 将棋では、以下のサイト・提供者の素材を利用させていただいています。</p>
+            <ul class="credit-list">
+                <li class="credit-item">
+                    <span class="credit-label">将棋のコマを打つ音</span>
+                    <span class="credit-text">友人の M 君にご提供いただきました。ありがとうございます。</span>
+                </li>
+                <li class="credit-item">
+                    <span class="credit-label">「王手」などの音声</span>
+                    <span class="credit-text">
+                        声と音の小部屋 酉月（作成者: 酉月ともはる）様の素材を利用しています。<br>
+                        利用規約に従って使用しています:
+                        <a href="https://yugetsu-sounds.com/kiyaku" target="_blank" rel="noopener noreferrer">https://yugetsu-sounds.com/kiyaku</a>
+                    </span>
+                </li>
+            </ul>
+            <p>素敵な素材をご提供くださった皆さまに、心より感謝いたします。</p>
+            <p>素材やライセンス表記に不備がある場合は、GitHub からご連絡ください。</p>
             <div class="center">
                 <a href="index.html" class="back-btn">戻る</a>
             </div>
