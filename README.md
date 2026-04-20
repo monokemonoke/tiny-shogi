@@ -7,6 +7,26 @@
 - `src/solver`: Rust 実装（状態生成、後退解析、SQLite 出力）
 - `src/web`: TypeScript/HTML アプリ + Cloudflare Pages Functions
 
+## ローカルで動かす
+
+1. Web アプリのディレクトリに移動します。
+
+```bash
+cd src/web
+```
+
+2. 依存関係をインストールします。
+
+```bash
+npm install
+```
+
+3. ローカルサーバーを起動します。
+
+```bash
+npm run pages:dev
+```
+
 ## Cloudflare へのデプロイ手順
 
 1. Web アプリのディレクトリに移動します。
