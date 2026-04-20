@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>スプリント - Tiny 将棋</title>
+    <meta property="og:title" content="スプリント - Tiny 将棋">
+    <meta property="og:description" content="4x4のミニ将棋。互角の中盤局面からいきなり始まるスプリントモード！">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Tiny 将棋">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:image" content="/ogp.webp">
+    <meta name="twitter:image" content="/ogp.webp">
+    <link rel="prefetch" href="/assets/oute.mp3">
+    <link rel="prefetch" href="/assets/sokomade.mp3">
+    <link rel="prefetch" href="/assets/yorosiku.mp3">
+    <link rel="prefetch" href="/assets/Shogi1.mp3">
+    <link rel="prefetch" href="/assets/Shogi2.mp3">
+    <link rel="prefetch" href="/assets/Shogi3.mp3">
+    <link rel="prefetch" href="index.html">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #ui-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            color: #4E342E;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 8px;
+            border: 1px solid #D7CCC8;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            width: 280px;
+            height: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(5px);
+        }
+
+        .ui-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            cursor: pointer;
+            background: rgba(109, 76, 65, 0.05);
+            border-radius: 8px 8px 0 0;
+            border-bottom: 1px solid #D7CCC8;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-btn {
+            font-size: 0.8rem;
+            color: #6D4C41;
+            text-decoration: none;
+            border: 1px solid #6D4C41;
+            padding: 2px 6px;
+            border-radius: 4px;
+            pointer-events: auto;
+            background: transparent;
+        }
+
+        .back-btn:hover {
+            color: #fff;
+            background: #6D4C41;
+        }
+
+        .ui-header h1 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #4E342E;
+            pointer-events: none;
+        }
+
+        #toggle-icon {
+            font-size: 1.2rem;
+            color: #8D6E63;
+            transition: transform 0.3s;
+        }
+
+        #ui-container[data-ui-state="closed"] .ui-header {
+            border-radius: 8px;
+            border-bottom: none;
+        }
+
+        #ui-container[data-ui-state="closed"] #toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        #ui-container[data-ui-state="closed"] #ui-content {
+            display: none;
+        }
+
+        #ui-container[data-ui-state="peek"] #ui-content {
+            display: none;
+        }
+
+        #ui-container[data-ui-state="closed"],
+        #ui-container[data-ui-state="peek"] {
+            height: auto;
+        }
+
+        #peek-controls {
+            display: none;
+            padding: 10px 15px 12px;
+            border-top: 1px solid #D7CCC8;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            gap: 8px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #peek-controls .peek-btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+
+        #ui-container[data-ui-state="peek"] #peek-controls {
+            display: flex;
+        }
+
+        #ui-content {
+            padding: 15px;
+            opacity: 1;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        /* === アナリシス用スタイル === */
+        #analysis-result {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #D7CCC8;
+            border-radius: 6px;
+        }
+
+        .eval-summary {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #D7CCC8;
+            border-radius: 6px;
+        }
+
+        .eval-summary-main {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #5D4037;
+        }
+
+        .eval-summary-sub {
+            margin-top: 4px;
+            font-size: 0.86rem;
+            color: #6D4C41;
+        }
+
+        #eval-summary-live,
+        #eval-summary-review {
+            display: none;
+        }
+
+        .eval-graph-readout {
+            width: 100%;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #5D4037;
+            text-align: center;
+        }
+
+
+        .kifu-header {
+            font-weight: bold;
+            color: #5D4037;
+            font-size: 0.9rem;
+        }
+
+        #kifu-list {
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid #D7CCC8;
+            border-radius: 6px;
+            padding: 6px;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .kifu-item {
+            text-align: left;
+            padding: 6px 8px;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.85);
+            color: #4E342E;
+            cursor: pointer;
+        }
+
+        .kifu-item:hover {
+            border-color: #A1887F;
+            background: #fff;
+        }
+
+        .kifu-item.is-current {
+            background: #6D4C41;
+            color: #fff;
+        }
+
+        .kifu-item.is-future {
+            opacity: 0.6;
+        }
+
+        /* Overlay Styles from game.html */
+        .overlay-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #4E342E;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #D7CCC8;
+            text-align: center;
+            color: #4E342E;
+            min-width: 280px;
+            pointer-events: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-btn {
+            padding: 10px 25px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .modal-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-yes {
+            background: #6D4C41;
+            color: white;
+        }
+
+        .btn-yes:hover {
+            background: #5D4037;
+        }
+
+        .btn-no {
+            background: #A1887F;
+            color: white;
+        }
+
+        .btn-no:hover {
+            background: #8D6E63;
+        }
+
+        #current-eval {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #5D4037;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        #eval-detail {
+            font-size: 0.8rem;
+            color: #795548;
+            text-align: center;
+        }
+
+        .move-list {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border-top: 1px solid #D7CCC8;
+        }
+
+        .move-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 8px;
+            border-bottom: 1px solid #EFEBE9;
+            cursor: pointer;
+            color: #4E342E;
+        }
+
+        .move-item:hover {
+            background: #EFEBE9;
+        }
+
+        .move-item.best {
+            color: #b71c1c;
+            font-weight: bold;
+            background: #FFEBEE;
+        }
+
+        .move-item.current {
+            background: #E8F5E9;
+            font-weight: bold;
+        }
+
+        #kifu-list {
+            margin-top: 10px;
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid #D7CCC8;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .kifu-header {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #5D4037;
+            margin-bottom: 5px;
+        }
+
+        .move-eval {
+            font-family: monospace;
+            color: #5D4037;
+        }
+
+        button.action-btn {
+            background: #6D4C41;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+
+        button.action-btn:hover {
+            background: #5D4037;
+        }
+
+        /* 共通スタイル */
+        .piece-text {
+            font-family: "HiraMinProN-W6", "Hiragino Mincho ProN", "Yu Mincho", serif;
+            font-weight: bold;
+            text-align: center;
+            pointer-events: none;
+            user-select: none;
+            font-size: 150px;
+            width: 180px;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a1a;
+            text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .promoted-text {
+            color: #b71c1c;
+        }
+
+        /* === ゲームオーバー/勝利画面 === */
+        .victory-title {
+            margin-top: 0;
+            font-size: 2rem;
+            color: #5D4037;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .victory-content {
+            margin: 15px 0;
+            color: #4E342E;
+        }
+
+        .victory-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 15px;
+        }
+
+        /* Mobile Styles */
+        /* Sync with game.ts: (window.innerWidth < 768) || (window.innerWidth / window.innerHeight < 0.9) */
+        @media (max-width: 768px),
+        (aspect-ratio: 9/10),
+        (max-aspect-ratio: 9/10) {
+            #ui-container {
+                top: auto;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                border-radius: 12px 12px 0 0;
+                border: none;
+                border-top: 1px solid #D7CCC8;
+                max-height: 50vh;
+                box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.2);
+            }
+
+            .ui-header {
+                border-radius: 12px 12px 0 0;
+            }
+
+            /* Invert toggle icon logic for bottom sheet */
+            /* Default (Expanded) should show Down arrow (to collapse) */
+            /* Current char is ▲. Rotate 180 to get ▼ */
+            #toggle-icon {
+                transform: rotate(180deg);
+            }
+
+            /* Closed state should show Up arrow (to expand) */
+            #ui-container[data-ui-state="closed"] #toggle-icon {
+                transform: rotate(0deg);
+            }
+
+            /* Peek should look like the expanded arrow */
+            #ui-container[data-ui-state="peek"] #toggle-icon {
+                transform: rotate(180deg);
+            }
+
+            .victory-actions {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .victory-actions .gameover-undo,
+            .victory-actions .gameover-retry {
+                flex: 1 1 calc(50% - 5px);
+                margin: 0;
+            }
+
+            .victory-actions .gameover-share {
+                flex: 1 1 100%;
+                order: 3;
+                margin: 0;
+            }
+        }
+    </style>
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/", "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js" } }
+    </script>
+    <script type="module">
+        const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+
+        if (GA_MEASUREMENT_ID) {
+            const gaScript = document.createElement('script');
+            gaScript.async = true;
+            gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+            document.head.appendChild(gaScript);
+
+            window.dataLayer = window.dataLayer || [];
+            function gtag() { window.dataLayer.push(arguments); }
+            gtag('js', new Date());
+            gtag('config', GA_MEASUREMENT_ID);
+        }
+    </script>
+</head>
+
+<body>
+
+
+
+    <div id="game-over-overlay" class="overlay-bg" style="display:none;">
+        <div class="modal-box">
+            <h2 id="game-over-title" class="victory-title">勝負あり</h2>
+            <div id="game-over-content" class="victory-content"></div>
+            <div id="game-over-stats"
+                style="width:100%; display:none; flex-direction:column; align-items:center; margin-top:10px;">
+                <canvas id="eval-graph"
+                    style="width:100%; height:120px; background: rgba(0,0,0,0.05); border-radius:4px;"></canvas>
+                <div id="eval-graph-readout" class="eval-graph-readout"></div>
+            </div>
+            <div class="victory-actions">
+                <button class="modal-btn gameover-share" style="background:#000; color:#fff;" onclick="window.Main.shareResult()">Post
+                    to X</button>
+                <button class="modal-btn btn-yes gameover-undo" id="btn-gameover-undo" onclick="window.Main.undoFromGameOver()">◀ 戻る</button>
+                <button class="modal-btn btn-yes gameover-retry" onclick="window.Main.startSprint()">もう一度</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ui-container" data-ui-state="open">
+        <div class="ui-header" onclick="if(event.target.tagName!=='A') window.Main.toggleUI()">
+            <div class="header-left">
+                <a href="index.html" class="back-btn">戻る</a>
+                <h1>スプリント</h1>
+            </div>
+            <div id="toggle-icon">▲</div>
+        </div>
+        <div id="peek-controls">
+            <button class="action-btn peek-btn" id="peek-undo" onclick="window.Main.undoMove()">◀ 戻る</button>
+            <button class="action-btn peek-btn" id="peek-redo" onclick="window.Main.redoMove()">進む ▶</button>
+        </div>
+        <div id="ui-content">
+            <!-- 対局中操作 -->
+            <div id="game-controls">
+                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                    <button class="action-btn" id="btn-undo" style="flex:1" onclick="window.Main.undoMove()">◀
+                        戻る</button>
+                    <button class="action-btn" id="btn-redo" style="flex:1" onclick="window.Main.redoMove()">進む
+                        ▶</button>
+                </div>
+                <button class="action-btn" onclick="window.Main.startSprint()">次の局面</button>
+
+                <div id="eval-summary-live" class="eval-summary">
+                    <div id="eval-summary-live-main" class="eval-summary-main">評価: 先手 N/A</div>
+                    <div id="eval-summary-live-sub" class="eval-summary-sub">（厳密値不明）</div>
+                </div>
+
+                <!-- 棋譜リスト -->
+                <div class="kifu-header" style="margin-top:12px;">棋譜</div>
+                <div id="kifu-list"></div>
+            </div>
+
+
+            <!-- 振り返りモード操作 -->
+            <div id="review-controls" style="display:none;">
+                <div style="text-align:center; font-weight:bold; color:#5D4037; margin-bottom:10px;">
+                    振り返りモード
+                </div>
+                <div id="eval-summary-review" class="eval-summary">
+                    <div id="eval-summary-review-main" class="eval-summary-main">評価: 先手 N/A</div>
+                    <div id="eval-summary-review-sub" class="eval-summary-sub">（厳密値不明）</div>
+                </div>
+                <!-- 評価値グラフ（振り返り用） -->
+                <div style="margin-bottom:10px;">
+                    <canvas id="review-eval-graph"
+                        style="width:100%; height:80px; background: rgba(0,0,0,0.05); border-radius:4px;"></canvas>
+                </div>
+                <div style="display:flex; gap:6px; margin-bottom:8px;">
+                    <button class="action-btn" style="flex:1; font-size:0.8rem; padding:8px;"
+                        onclick="window.Main.stepToBegin()">|◀</button>
+                    <button class="action-btn" id="btn-prev" style="flex:2" onclick="window.Main.stepBackward()">◀
+                        戻る</button>
+                    <button class="action-btn" id="btn-next" style="flex:2" onclick="window.Main.stepForward()">進む
+                        ▶</button>
+                    <button class="action-btn" style="flex:1; font-size:0.8rem; padding:8px;"
+                        onclick="window.Main.stepToEnd()">▶|</button>
+                </div>
+                <div id="review-position"
+                    style="text-align:center; font-size:0.9rem; color:#6D4C41; margin-bottom:10px;"></div>
+                <button class="action-btn" style="background:#A1887F;"
+                    onclick="window.Main.exitReviewMode()">対局に戻る</button>
+            </div>
+
+            <div style="height: 15px;"></div>
+            <div style="font-size:0.8rem; color:#888; margin-top:10px;">
+                * 盤面をクリックして操作できます。<br>
+                * 評価値は互いに最善手を指した場合のものです。
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals (Simplified) -->
+    <div id="promotion-overlay" class="overlay-bg" style="display:none;">
+        <div class="modal-box">
+            <h3 style="margin-top:0;">成りますか？</h3>
+            <div style="display:flex; justify-content: center;">
+                <button onclick="window.Main.resolvePromotion(true)" class="modal-btn btn-yes">成る</button>
+                <button onclick="window.Main.resolvePromotion(false)" class="modal-btn btn-no">成らない</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>window.__sprintMode = true;</script>
+    <script type="module" src="./game.ts"></script>
+</body>
+
+</html>

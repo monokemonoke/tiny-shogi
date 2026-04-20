@@ -2143,8 +2143,66 @@ const Main: any = {
             sente: sente,
             gote: gote
         };
+    },
+
+    sprintPositionsCache: null as null | any[],
+
+    async startSprint() {
+        if (!this.sprintPositionsCache) {
+            try {
+                const res = await fetch('/sprint_positions.json');
+                this.sprintPositionsCache = await res.json();
+            } catch (e) {
+                console.error('スプリント局面の読み込みに失敗しました', e);
+                return;
+            }
+        }
+        const positions = this.sprintPositionsCache!;
+        const pos = positions[Math.floor(Math.random() * positions.length)];
+
+        GameState.reset();
+
+        const pieceMap: Record<number, { type: string; promoted: boolean } | null> = {
+            0: null,
+            1: { type: 'OU',   promoted: false },
+            2: { type: 'KIN',  promoted: false },
+            3: { type: 'KAKU', promoted: false },
+            4: { type: 'KAKU', promoted: true  },
+        };
+
+        for (let y = 0; y < 4; y++) {
+            for (let x = 0; x < 4; x++) {
+                const val: number = pos.board[y][x];
+                const absVal = Math.abs(val);
+                const info = pieceMap[absVal];
+                GameState.board[y][x] = info
+                    ? { type: info.type, owner: val > 0 ? SENTE : GOTE, promoted: info.promoted }
+                    : null;
+            }
+        }
+
+        for (let i = 0; i < pos.sente_kin;  i++) GameState.hands[SENTE].push('KIN');
+        for (let i = 0; i < pos.sente_kaku; i++) GameState.hands[SENTE].push('KAKU');
+        for (let i = 0; i < pos.gote_kin;   i++) GameState.hands[GOTE].push('KIN');
+        for (let i = 0; i < pos.gote_kaku;  i++) GameState.hands[GOTE].push('KAKU');
+
+        GameState.turn = SENTE;
+        this.isAiMode = true;
+        this.playerSide = SENTE;
+        this.gameOver = false;
+        this.evalHistory = [];
+        this.currentEvalDisplay = buildEvalDisplay({ kind: 'unknown' }, this.winRateMapper);
+
+        ShogiView.render(GameState);
+        this.renderEvaluationSummary();
+        this.updateReviewUI();
+        this.updateKifuList();
+        this.analyze();
     }
 };
 
 (window as any).Main = Main;
 Main.init();
+if ((window as any).__sprintMode) {
+    Main.startSprint();
+}

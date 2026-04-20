@@ -14,6 +14,7 @@ export default defineConfig({
         privacy: resolve(__dirname, 'privacy.html'),
         credits: resolve(__dirname, 'credits.html'),
         boardEditor: resolve(__dirname, 'board_editor.html'),
+        sprint: resolve(__dirname, 'sprint.html'),
       },
       output: {
         manualChunks: {
