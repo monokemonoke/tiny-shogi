@@ -1457,6 +1457,19 @@ const Main: any = {
 
         if (this.isGameOver) return; // Already handled
 
+        // 千日手検出: 同一局面が4回出現したら先手負け
+        const currentHash = HashCalc.encodeHash(GameState);
+        let repetitionCount = 1;
+        for (const histState of GameState.history) {
+            if (HashCalc.encodeHash(histState) === currentHash) {
+                repetitionCount++;
+            }
+        }
+        if (repetitionCount >= 4) {
+            this.handleGameOver(GOTE, 'sennichite');
+            return;
+        }
+
         if (isCheck) {
             this.playSound('oute');
         } else {
@@ -1466,25 +1479,35 @@ const Main: any = {
         }
     },
 
-    handleGameOver(winner: any) {
+    handleGameOver(winner: any, reason?: string) {
         if (this.isGameOver) return;
         this.aiModeBeforeGameOver = this.isAiMode;
         this.isGameOver = true;
         this.playSound('sokomade');
-        
+
         const title = document.getElementById('game-over-title')!;
         const content = document.getElementById('game-over-content')!;
-        
+        const moves = GameState.history.length;
+
+        if (reason === 'sennichite') {
+            title.textContent = "千日手";
+            title.style.color = "#1565C0";
+            content.innerHTML = `
+                <div style="font-size:1.5rem; font-weight:bold; color:#1565C0; margin: 10px 0;">
+                    千日手により先手負け
+                </div>
+                <div style="font-size:1.1rem; color:#6D4C41; margin-top: 8px;">
+                    ${moves}手目
+                </div>
+            `;
+        } else {
         // Human is SENTE (Main.playerSide)
         const isHumanWinner = (winner === this.playerSide);
-        
+
         if (isHumanWinner) {
             title.textContent = "勝利！";
-            title.style.color = "#d32f2f"; 
-            
-            // Total Plies
-            const moves = GameState.history.length;
-            
+            title.style.color = "#d32f2f";
+
             if (moves === 27) {
                 content.innerHTML = `
                     <div style="font-size:1.8rem; font-weight:bold; color:#d32f2f; margin: 10px 0;">
@@ -1530,8 +1553,9 @@ const Main: any = {
                     (最短は27手です)
                 </div>
             `;
-            
+
         }
+        } // end else (not sennichite)
 
         const gameOverStats = document.getElementById('game-over-stats');
         if (gameOverStats) {
