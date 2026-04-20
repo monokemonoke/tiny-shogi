@@ -968,6 +968,7 @@ const Main: any = {
         });
 
         const prev = GameState.history.pop();
+        this.evalHistory = this.evalHistory.filter(e => e.moveNodes <= GameState.history.length);
         GameState.board = prev.board;
         GameState.hands = prev.hands;
         GameState.turn = prev.turn;
