@@ -745,7 +745,7 @@ const Main: any = {
         // URL Load
         this.loadFromURL();
 
-        if (!GameState.reviewMode) {
+        if (!GameState.reviewMode && !(window as any).__sprintMode) {
              this.analyze();
         }
 
@@ -839,7 +839,6 @@ const Main: any = {
         if (this.pendingMove) {
             this.commitMove(this.pendingMove.sel, this.pendingMove.tx, this.pendingMove.ty, promote);
             this.pendingMove = null;
-            this.isGameOver = false;
             this.initSounds();
         }
 
@@ -1359,7 +1358,8 @@ const Main: any = {
 
     // --- Analysis API (Cloudflare Workers D1) ---
     // --- Analysis API (Cloudflare Workers D1) ---
-    async analyze(allowAutoPlay: boolean = true) {
+    async analyze(allowAutoPlay: boolean = true, retryCount: number = 0) {
+        const expectedTurn = GameState.turn;
         try {
             // Call Cloudflare Workers API
             const response = await fetch('/api/analyze', {
@@ -1375,8 +1375,13 @@ const Main: any = {
                     const errData = await response.text();
                     errorMsg += ` - ${errData}`;
                 } catch (e) { /* ignore */ }
-                
+
                 console.warn(`Analysis API error: ${errorMsg}`);
+                if (allowAutoPlay && retryCount < 1) {
+                    setTimeout(() => {
+                        if (GameState.turn === expectedTurn) this.analyze(allowAutoPlay, retryCount + 1);
+                    }, 1500);
+                }
                 return;
             }
 
@@ -1400,7 +1405,7 @@ const Main: any = {
                         moveParams: gen.moveParams,
                         result: result,
                         hash: hash,
-                        index: i 
+                        index: i
                     };
                 } catch (e) {
                     console.error("[Analyze] Error processing move " + i, e);
@@ -1414,6 +1419,11 @@ const Main: any = {
             this.handleAnalysisResult(data, allowAutoPlay);
         } catch (e: any) {
             console.error('Analysis error:', e);
+            if (allowAutoPlay && retryCount < 1) {
+                setTimeout(() => {
+                    if (GameState.turn === expectedTurn) this.analyze(allowAutoPlay, retryCount + 1);
+                }, 1500);
+            }
         }
     },
 
@@ -2148,6 +2158,10 @@ const Main: any = {
     sprintPositionsCache: null as null | any[],
 
     async startSprint() {
+        if (this.autoPlayTimer) {
+            clearTimeout(this.autoPlayTimer);
+            this.autoPlayTimer = null;
+        }
         if (!this.sprintPositionsCache) {
             try {
                 const res = await fetch('/sprint_positions.json');
