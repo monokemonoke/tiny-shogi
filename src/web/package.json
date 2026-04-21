@@ -18,7 +18,7 @@
     "preview": "vite preview",
     "pages:dev": "cp wrangler.public.toml wrangler.toml && npx wrangler pages dev .",
     "prepages:deploy": "node scripts/validate_wrangler_private.mjs",
-    "pages:deploy": "cp wrangler.private.toml wrangler.toml && npx wrangler pages deploy ./dist",
+    "pages:deploy": "cp wrangler.private.toml wrangler.toml && npx wrangler pages deploy ./dist --commit-message=$(git rev-parse --short HEAD)",
     "db:setup": "node scripts/setup_local_d1.mjs"
   },
   "keywords": [],
