@@ -2193,6 +2193,9 @@ const Main: any = {
         this.evalHistory = [];
         this.currentEvalDisplay = buildEvalDisplay({ kind: 'unknown' }, this.winRateMapper);
 
+        const overlay = document.getElementById('game-over-overlay');
+        if (overlay) overlay.style.display = 'none';
+
         ShogiView.render(GameState);
         this.renderEvaluationSummary();
         this.updateReviewUI();
