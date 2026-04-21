@@ -2189,7 +2189,7 @@ const Main: any = {
         GameState.turn = SENTE;
         this.isAiMode = true;
         this.playerSide = SENTE;
-        this.gameOver = false;
+        this.isGameOver = false;
         this.evalHistory = [];
         this.currentEvalDisplay = buildEvalDisplay({ kind: 'unknown' }, this.winRateMapper);
 
