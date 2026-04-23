@@ -771,15 +771,29 @@ const Main: any = {
 
 
     loadFromURL() {
-        // Functionality removed
+        const params = new URLSearchParams(window.location.search);
+        const m = params.get('m');
+        if (!m) return;
+        const moves = KifuCodec.decode(m);
+        for (const move of moves) {
+            this.commitMoveInternal(move, true);
+        }
+        ShogiView.render(GameState);
     },
-    
+
     enterReviewMode(moves) {
        // Functionality removed
     },
 
     updateURL() {
-        // Functionality removed
+        const encoded = KifuCodec.encode(GameState.moveRecords);
+        const url = new URL(window.location.href);
+        if (encoded) {
+            url.searchParams.set('m', encoded);
+        } else {
+            url.searchParams.delete('m');
+        }
+        history.replaceState(null, '', url.toString());
     },
 
     startGame() {
@@ -897,7 +911,8 @@ const Main: any = {
             // prevBoard から駒情報を取得し、新しいオブジェクトとしてコピー
             // （historyに保存されたprevBoardを変更しないため）
             const srcPiece = prevBoard[record.fromY][record.fromX];
-            const pObj = { 
+            if (!record.piece) record.piece = srcPiece.type;
+            const pObj = {
                 type: srcPiece.type, 
                 owner: srcPiece.owner, 
                 promoted: record.promote ? true : srcPiece.promoted 
