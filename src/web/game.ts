@@ -755,6 +755,16 @@ const Main: any = {
         this.updateReviewUI();
         this.updateKifuList();
         ShogiView.playStartAnimation();
+
+        document.addEventListener('keydown', (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                this.undoMove();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                this.redoMove();
+            }
+        });
     },
 
 
