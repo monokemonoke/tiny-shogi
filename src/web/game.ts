@@ -2112,8 +2112,13 @@ const Main: any = {
     },
 
     async shareResult() {
-        const shareBtn = document.querySelector('.victory-actions button') as HTMLButtonElement;
-        const originalText = shareBtn ? shareBtn.textContent : "Post to X";
+        const shareBtn = document.getElementById('btn-gameover-share') as HTMLButtonElement | null;
+        const originalButtonHtml = shareBtn ? shareBtn.innerHTML : "Post to X";
+        const restoreShareBtn = () => {
+            if (!shareBtn) return;
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = originalButtonHtml;
+        };
         if (shareBtn) { shareBtn.disabled = true; shareBtn.textContent = "作成中..."; }
 
         try {
@@ -2131,7 +2136,10 @@ const Main: any = {
 
             // Blob
             canvas.toBlob(async (blob) => {
-                if (!blob) return;
+                if (!blob) {
+                    restoreShareBtn();
+                    return;
+                }
                 const file = new File([blob], "tiny-shogi-result.png", { type: "image/png" });
                 
                 const moves = GameState.history.length;
@@ -2168,13 +2176,13 @@ const Main: any = {
                     alert("画像を保存しました\nX(Twitter)に添付してシェアしてください！");
                 }
                 
-                if (shareBtn) { shareBtn.disabled = false; shareBtn.textContent = originalText; }
+                restoreShareBtn();
             }, 'image/png');
 
         } catch (e) {
             console.error(e);
             alert("Share failed: " + e);
-            if (shareBtn) { shareBtn.disabled = false; shareBtn.textContent = originalText; }
+            restoreShareBtn();
         }
     },
 
