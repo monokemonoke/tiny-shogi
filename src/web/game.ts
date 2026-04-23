@@ -1538,13 +1538,8 @@ const Main: any = {
         } else {
             title.textContent = "敗北...";
             title.style.color = "#4E342E";
-            
-            // Find "Losing Point" (Haisyakute)
-            // Where Sente Score dropped from > -500 to < -1500 (example)
-            // Or just the last move before it went bad.
-            
+
             let badMoveIndex = -1;
-            // Scan history
             const evalData = this.getEvalGraphData();
             for (let i = 1; i < evalData.length; i++) {
                 const prevRate = evalData[i - 1].senteWinRate;
@@ -1555,11 +1550,27 @@ const Main: any = {
                 }
             }
 
+            const withBadMove = [
+                `${badMoveIndex}手目が敗着でした。`,
+                `${badMoveIndex}手目の選択が明暗を分けました。`,
+                `${badMoveIndex}手目で形勢が逆転しました。`,
+                `${badMoveIndex}手目を振り返ってみましょう。`,
+                `惜しい！${badMoveIndex}手目がターニングポイントでした。`,
+            ];
+            const withoutBadMove = [
+                `一手一手が大切です。もう一度！`,
+                `次こそは勝てる！`,
+                `難しい局面が続きましたね。`,
+            ];
+
+            const message = badMoveIndex > 0
+                ? withBadMove[Math.floor(Math.random() * withBadMove.length)]
+                : withoutBadMove[Math.floor(Math.random() * withoutBadMove.length)];
+
             content.innerHTML = `
                 <div style="font-size:1.3rem; margin: 10px 0;">
-                    AIの勝利です。
+                    ${message}
                 </div>
-                ${badMoveIndex > 0 ? `<div style="font-size:1.1rem; color:#b71c1c;">敗着: ${badMoveIndex}手目</div>` : ''}
                 <div style="font-size:1.1rem; color:#6D4C41; margin-top: 8px;">
                     (最短は27手です)
                 </div>
