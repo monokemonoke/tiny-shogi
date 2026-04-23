@@ -420,9 +420,21 @@
 
         .victory-actions {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             margin-top: 20px;
-            gap: 15px;
+            gap: 10px;
+        }
+
+        .victory-actions .gameover-undo,
+        .victory-actions .gameover-retry {
+            flex: 1 1 calc(50% - 10px);
+            margin: 0;
+        }
+
+        .victory-actions .gameover-share {
+            flex: 1 1 100%;
+            margin: 0;
         }
 
         /* Mobile Styles */
@@ -463,22 +475,6 @@
                 transform: rotate(180deg);
             }
 
-            .victory-actions {
-                flex-wrap: wrap;
-                gap: 10px;
-            }
-
-            .victory-actions .gameover-undo,
-            .victory-actions .gameover-retry {
-                flex: 1 1 calc(50% - 5px);
-                margin: 0;
-            }
-
-            .victory-actions .gameover-share {
-                flex: 1 1 100%;
-                order: 3;
-                margin: 0;
-            }
         }
     </style>
     <script type="importmap">
@@ -516,10 +512,9 @@
                 <div id="eval-graph-readout" class="eval-graph-readout"></div>
             </div>
             <div class="victory-actions">
-                <button class="modal-btn gameover-share" style="background:#000; color:#fff;" onclick="window.Main.shareResult()">Post
-                    to X</button>
                 <button class="modal-btn btn-yes gameover-undo" id="btn-gameover-undo" onclick="window.Main.undoFromGameOver()">◀ 戻る</button>
                 <button class="modal-btn btn-yes gameover-retry" onclick="window.Main.resetGameFromUI()">もう一度</button>
+                <button class="modal-btn gameover-share" style="background:#000; color:#fff;" onclick="window.Main.shareResult()">Xに投稿</button>
             </div>
         </div>
     </div>
