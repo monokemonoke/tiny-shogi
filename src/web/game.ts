@@ -737,6 +737,7 @@ const Main: any = {
 
     init() {
         this.initSounds();
+        this.updateSoundBtn();
 
         ShogiLogic.initBoard(GameState);
         ShogiView.init();
@@ -1453,6 +1454,7 @@ const Main: any = {
 
     // --- Sound & Game End Logic ---
     sounds: {},
+    isSoundMuted: localStorage.getItem('tinyShogiSoundMuted') === 'true',
     isGameOver: false,
     clearGameOverState() {
         this.isGameOver = false;
@@ -1470,10 +1472,23 @@ const Main: any = {
         this.sounds.yorosiku = new Audio(assetUrl('yorosiku.mp3'));
     },
     playSound(key) {
+        if (this.isSoundMuted) return;
         if (this.sounds[key]) {
             this.sounds[key].currentTime = 0;
             this.sounds[key].play().catch(e => console.log(e));
         }
+    },
+    toggleSoundMute() {
+        this.isSoundMuted = !this.isSoundMuted;
+        localStorage.setItem('tinyShogiSoundMuted', String(this.isSoundMuted));
+        this.updateSoundBtn();
+    },
+    updateSoundBtn() {
+        const btn = document.getElementById('btn-sound-toggle');
+        if (!btn) return;
+        const iconOn = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+        const iconOff = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+        btn.innerHTML = this.isSoundMuted ? `${iconOff}音声OFF` : `${iconOn}音声ON`;
     },
 
     checkGameStatus(lastMovePlayer) {
@@ -1498,7 +1513,7 @@ const Main: any = {
 
         if (isCheck) {
             this.playSound('oute');
-        } else {
+        } else if (!this.isSoundMuted) {
             const soundIndex = Math.floor(Math.random() * 3) + 1;
             const snd = new Audio(assetUrl(`Shogi${soundIndex}.mp3`));
             snd.play().catch(() => { });
