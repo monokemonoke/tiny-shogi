@@ -387,6 +387,36 @@
             background: #5D4037;
         }
 
+        .shortcut-tooltip {
+            position: relative;
+        }
+
+        .shortcut-tooltip::after {
+            content: attr(data-shortcut);
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(42, 30, 26, 0.92);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: normal;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+            z-index: 20;
+        }
+
+        .shortcut-tooltip:hover::after,
+        .shortcut-tooltip:focus-within::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
         /* 共通スタイル */
         .piece-text {
             font-family: "HiraMinProN-W6", "Hiragino Mincho ProN", "Yu Mincho", serif;
@@ -531,17 +561,25 @@
             <div id="toggle-icon">▲</div>
         </div>
         <div id="peek-controls">
-            <button class="action-btn peek-btn" id="peek-undo" onclick="window.Main.undoMove()">◀ 戻る</button>
-            <button class="action-btn peek-btn" id="peek-redo" onclick="window.Main.redoMove()">進む ▶</button>
+            <span class="shortcut-tooltip" data-shortcut="左矢印キー" style="flex:1">
+                <button class="action-btn peek-btn" id="peek-undo" onclick="window.Main.undoMove()">◀ 戻る</button>
+            </span>
+            <span class="shortcut-tooltip" data-shortcut="右矢印キー" style="flex:1">
+                <button class="action-btn peek-btn" id="peek-redo" onclick="window.Main.redoMove()">進む ▶</button>
+            </span>
         </div>
         <div id="ui-content">
             <!-- 対局中操作 -->
             <div id="game-controls">
                 <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <button class="action-btn" id="btn-undo" style="flex:1" onclick="window.Main.undoMove()">◀
-                        戻る</button>
-                    <button class="action-btn" id="btn-redo" style="flex:1" onclick="window.Main.redoMove()">進む
-                        ▶</button>
+                    <span class="shortcut-tooltip" data-shortcut="左矢印キー" style="flex:1">
+                        <button class="action-btn" id="btn-undo" onclick="window.Main.undoMove()">◀
+                            戻る</button>
+                    </span>
+                    <span class="shortcut-tooltip" data-shortcut="右矢印キー" style="flex:1">
+                        <button class="action-btn" id="btn-redo" onclick="window.Main.redoMove()">進む
+                            ▶</button>
+                    </span>
                 </div>
                 <button class="action-btn" onclick="window.Main.resetGameFromUI()">リセット</button>
                 <button class="action-btn" id="btn-sound-toggle" style="background:#8D6E63;" onclick="window.Main.toggleSoundMute()"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>音声ON</button>
@@ -574,10 +612,14 @@
                 <div style="display:flex; gap:6px; margin-bottom:8px;">
                     <button class="action-btn" style="flex:1; font-size:0.8rem; padding:8px;"
                         onclick="window.Main.stepToBegin()">|◀</button>
-                    <button class="action-btn" id="btn-prev" style="flex:2" onclick="window.Main.stepBackward()">◀
-                        戻る</button>
-                    <button class="action-btn" id="btn-next" style="flex:2" onclick="window.Main.stepForward()">進む
-                        ▶</button>
+                    <span class="shortcut-tooltip" data-shortcut="左矢印キー" style="flex:2">
+                        <button class="action-btn" id="btn-prev" onclick="window.Main.stepBackward()">◀
+                            戻る</button>
+                    </span>
+                    <span class="shortcut-tooltip" data-shortcut="右矢印キー" style="flex:2">
+                        <button class="action-btn" id="btn-next" onclick="window.Main.stepForward()">進む
+                            ▶</button>
+                    </span>
                     <button class="action-btn" style="flex:1; font-size:0.8rem; padding:8px;"
                         onclick="window.Main.stepToEnd()">▶|</button>
                 </div>
