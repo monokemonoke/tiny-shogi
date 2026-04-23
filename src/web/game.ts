@@ -1122,8 +1122,13 @@ const Main: any = {
             const item = createItem(label, moveNo, isCurrent, isFuture);
             container.appendChild(item);
         });
+
+        const currentItem = container.querySelector('.is-current') as HTMLElement | null;
+        if (currentItem) {
+            currentItem.scrollIntoView({ block: 'nearest' });
+        }
     },
-    
+
     // 指定手数にジャンプ
     // 指定手数にジャンプ
     jumpToMove(targetIndex: number) {
