@@ -525,6 +525,12 @@ fn main() {
         "dump_gote" => {
             dump_winning_strategy_gote();
         }
+        "find_bishop_nonpromotion_best" => {
+            find_bishop_nonpromotion_best();
+        }
+        "find_first_bishop_nonpromotion_best" => {
+            find_first_bishop_nonpromotion_best();
+        }
         "export_json" => {
             println!("=== Mode: Export to JSON Buckets ===\n");
             export_to_json_buckets();
@@ -540,7 +546,7 @@ fn main() {
         }
         _ => {
             eprintln!(
-                "Usage: {} [generate|analyze|all|play|pv|interactive|server|export_json|export_sqlite]",
+                "Usage: {} [generate|analyze|all|play|pv|interactive|server|find_bishop_nonpromotion_best|find_first_bishop_nonpromotion_best|export_json|export_sqlite]",
                 args[0]
             );
             eprintln!("  generate:      Generate all states and save to files");
@@ -550,6 +556,8 @@ fn main() {
             eprintln!("  pv:            Show optimal move sequence");
             eprintln!("  interactive:   Manually explore game tree with evaluations");
             eprintln!("  server:        Start analysis API server for GUI");
+            eprintln!("  find_bishop_nonpromotion_best: Find states where bishop non-promotion is best but promotion is not");
+            eprintln!("  find_first_bishop_nonpromotion_best: Find the first state where bishop non-promotion is best but promotion is not");
             eprintln!("  export_json:   Export analysis results to JSON buckets");
             eprintln!("  export_sqlite: Export analysis results to SQLite database [batch_size]");
             std::process::exit(1);
@@ -1518,6 +1526,272 @@ fn detect_move_str(current: &State, next: &State) -> String {
         }
         _ => "不明".to_string(),
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct BishopPromotionKey {
+    from_x: usize,
+    from_y: usize,
+    to_x: usize,
+    to_y: usize,
+}
+
+struct BishopPromotionPair {
+    key: BishopPromotionKey,
+    non_promotion: State,
+    promotion: State,
+}
+
+struct BishopPromotionFinding {
+    current: State,
+    current_result: GameResult,
+    pair: BishopPromotionPair,
+    non_promotion_result: GameResult,
+    promotion_result: GameResult,
+}
+
+fn find_bishop_nonpromotion_best() {
+    find_bishop_nonpromotion_best_inner(false);
+}
+
+fn find_first_bishop_nonpromotion_best() {
+    find_bishop_nonpromotion_best_inner(true);
+}
+
+fn find_bishop_nonpromotion_best_inner(stop_at_first: bool) {
+    println!("Loading lookup database...");
+    let conn = Connection::open("data/lookup.db").expect("Failed to open data/lookup.db");
+    conn.execute_batch(
+        "
+        PRAGMA query_only = ON;
+        PRAGMA temp_store = MEMORY;
+        PRAGMA cache_size = -200000;
+    ",
+    )
+    .expect("Failed to configure SQLite");
+    let mut stmt = conn
+        .prepare("SELECT value FROM results WHERE hash = ?1")
+        .expect("Failed to prepare lookup query");
+
+    println!("Streaming states from 'data/states.bin'...");
+    let file = File::open("data/states.bin").expect("Failed to open data/states.bin");
+    let mut reader = BufReader::new(file);
+    let total_states: u64 =
+        bincode::deserialize_from(&mut reader).expect("Failed to read state count");
+    println!("Total states: {}", total_states);
+
+    let started_at = std::time::Instant::now();
+    let mut candidate_state_count = 0_u64;
+    let mut candidate_pair_count = 0_u64;
+    let mut matched_state_count = 0_u64;
+    let mut matched_pair_count = 0_u64;
+    let mut first_finding: Option<BishopPromotionFinding> = None;
+
+    for index in 0..total_states {
+        let state: State =
+            bincode::deserialize_from(&mut reader).expect("Failed to read a state entry");
+        let promotion_pairs = collect_bishop_promotion_pairs(&state);
+
+        if !promotion_pairs.is_empty() {
+            candidate_state_count += 1;
+            let current_result = lookup_game_result(&mut stmt, state.to_u128());
+            let mut matched_in_state = false;
+
+            for pair in promotion_pairs {
+                candidate_pair_count += 1;
+
+                let non_promotion_result =
+                    lookup_game_result(&mut stmt, pair.non_promotion.to_u128());
+                let promotion_result = lookup_game_result(&mut stmt, pair.promotion.to_u128());
+
+                if is_best_child_result(current_result, non_promotion_result)
+                    && !is_best_child_result(current_result, promotion_result)
+                {
+                    matched_pair_count += 1;
+                    matched_in_state = true;
+
+                    if first_finding.is_none() {
+                        first_finding = Some(BishopPromotionFinding {
+                            current: state.clone(),
+                            current_result,
+                            pair,
+                            non_promotion_result,
+                            promotion_result,
+                        });
+
+                        if stop_at_first {
+                            println!(
+                                "\nFound a matching state after scanning {} states in {:.1}s",
+                                index + 1,
+                                started_at.elapsed().as_secs_f64()
+                            );
+                            print_bishop_promotion_finding(first_finding.as_ref().unwrap());
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if matched_in_state {
+                matched_state_count += 1;
+            }
+        }
+
+        let processed = index + 1;
+        if processed % 1_000_000 == 0 {
+            println!(
+                "Processed {:>8}/{:>8} | candidate states: {:>8} | matches: {:>8} | elapsed: {:.1}s",
+                processed,
+                total_states,
+                candidate_state_count,
+                matched_state_count,
+                started_at.elapsed().as_secs_f64()
+            );
+        }
+    }
+
+    println!("\nScan completed in {:.1}s", started_at.elapsed().as_secs_f64());
+    println!("States with a promotion choice: {}", candidate_state_count);
+    println!("Promotion-choice move pairs: {}", candidate_pair_count);
+    println!(
+        "States where bishop non-promotion is best and promotion is not: {}",
+        matched_state_count
+    );
+    println!(
+        "Move pairs where bishop non-promotion is best and promotion is not: {}",
+        matched_pair_count
+    );
+
+    match first_finding {
+        Some(finding) => print_bishop_promotion_finding(&finding),
+        None => println!("\nNo matching state found."),
+    }
+}
+
+fn collect_bishop_promotion_pairs(state: &State) -> Vec<BishopPromotionPair> {
+    let mut grouped: HashMap<BishopPromotionKey, (Option<State>, Option<State>)> = HashMap::new();
+
+    for next_state in state.next() {
+        let Some((key, promote)) = extract_bishop_promotion_key(state, &next_state) else {
+            continue;
+        };
+
+        let entry = grouped.entry(key).or_insert((None, None));
+        if promote {
+            entry.1 = Some(next_state);
+        } else {
+            entry.0 = Some(next_state);
+        }
+    }
+
+    grouped
+        .into_iter()
+        .filter_map(|(key, (non_promotion, promotion))| match (non_promotion, promotion) {
+            (Some(non_promotion), Some(promotion)) => Some(BishopPromotionPair {
+                key,
+                non_promotion,
+                promotion,
+            }),
+            _ => None,
+        })
+        .collect()
+}
+
+fn extract_bishop_promotion_key(
+    current: &State,
+    next: &State,
+) -> Option<(BishopPromotionKey, bool)> {
+    let move_data = extract_move_data(current, next);
+    let (from_x, from_y) = (move_data.from_x?, move_data.from_y?);
+
+    if current.board[from_y][from_x].abs() != PIECE_BISHOP {
+        return None;
+    }
+
+    Some((
+        BishopPromotionKey {
+            from_x,
+            from_y,
+            to_x: move_data.to_x,
+            to_y: move_data.to_y,
+        },
+        move_data.promote,
+    ))
+}
+
+fn lookup_game_result(stmt: &mut rusqlite::Statement<'_>, hash: u128) -> GameResult {
+    let hash_str = format!("{:032X}", hash);
+    let value: String = stmt
+        .query_row(params![hash_str], |row| row.get(0))
+        .expect("Result not found in SQLite lookup");
+    parse_game_result(&value)
+}
+
+fn parse_game_result(value: &str) -> GameResult {
+    if value == "\"Unknown\"" {
+        return GameResult::Unknown;
+    }
+
+    if let Some(text) = value
+        .strip_prefix("{\"Win\":")
+        .and_then(|s| s.strip_suffix('}'))
+    {
+        return GameResult::Win(text.parse().expect("Invalid Win value"));
+    }
+
+    if let Some(text) = value
+        .strip_prefix("{\"Lose\":")
+        .and_then(|s| s.strip_suffix('}'))
+    {
+        return GameResult::Lose(text.parse().expect("Invalid Lose value"));
+    }
+
+    panic!("Unknown GameResult JSON: {}", value);
+}
+
+fn is_best_child_result(current_result: GameResult, child_result: GameResult) -> bool {
+    match current_result {
+        GameResult::Win(n) => n
+            .checked_sub(1)
+            .map(|moves| child_result == GameResult::Lose(moves))
+            .unwrap_or(false),
+        GameResult::Lose(n) => n
+            .checked_sub(1)
+            .map(|moves| child_result == GameResult::Win(moves))
+            .unwrap_or(false),
+        GameResult::Unknown => child_result == GameResult::Unknown,
+    }
+}
+
+fn print_bishop_promotion_finding(finding: &BishopPromotionFinding) {
+    println!("\n=== First Matching State ===");
+    println!("Current hash: {:032X}", finding.current.to_u128());
+    println!("Current result: {:?}", finding.current_result);
+    println!("Turn: {}", if finding.current.is_sente { "Sente" } else { "Gote" });
+    println!(
+        "Move: ({}{}, {}{})",
+        finding.pair.key.from_x,
+        finding.pair.key.from_y,
+        finding.pair.key.to_x,
+        finding.pair.key.to_y
+    );
+    println!("\n{}", finding.current);
+
+    println!(
+        "Non-promotion: {} -> {:?}",
+        detect_move_str(&finding.current, &finding.pair.non_promotion),
+        finding.non_promotion_result
+    );
+    println!("Hash: {:032X}", finding.pair.non_promotion.to_u128());
+    println!("{}", finding.pair.non_promotion);
+
+    println!(
+        "Promotion: {} -> {:?}",
+        detect_move_str(&finding.current, &finding.pair.promotion),
+        finding.promotion_result
+    );
+    println!("Hash: {:032X}", finding.pair.promotion.to_u128());
+    println!("{}", finding.pair.promotion);
 }
 
 fn count_winning_states() {
