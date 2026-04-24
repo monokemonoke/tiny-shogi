@@ -774,8 +774,74 @@ const Main: any = {
         const params = new URLSearchParams(window.location.search);
         const m = params.get('m');
         if (!m) return;
-        const moves = KifuCodec.decode(m);
+
+        const snapshot = {
+            board: JSON.parse(JSON.stringify(GameState.board)),
+            hands: JSON.parse(JSON.stringify(GameState.hands)),
+            turn: GameState.turn,
+            history: JSON.parse(JSON.stringify(GameState.history)),
+            moveRecords: JSON.parse(JSON.stringify(GameState.moveRecords)),
+            redoStack: JSON.parse(JSON.stringify(GameState.redoStack)),
+            redoMoves: JSON.parse(JSON.stringify(GameState.redoMoves))
+        };
+
+        const inBounds = (x: number, y: number) =>
+            Number.isInteger(x) && Number.isInteger(y) &&
+            x >= 0 && x < CONFIG.COLS && y >= 0 && y < CONFIG.ROWS;
+
+        const abort = () => {
+            GameState.board = snapshot.board;
+            GameState.hands = snapshot.hands;
+            GameState.turn = snapshot.turn;
+            GameState.history = snapshot.history;
+            GameState.moveRecords = snapshot.moveRecords;
+            GameState.redoStack = snapshot.redoStack;
+            GameState.redoMoves = snapshot.redoMoves;
+            GameState.selected = null;
+            const url = new URL(window.location.href);
+            url.searchParams.delete('m');
+            history.replaceState(null, '', url.toString());
+            ShogiView.render(GameState);
+        };
+
+        let moves: any[];
+        try {
+            moves = KifuCodec.decode(m);
+        } catch (e) {
+            abort();
+            return;
+        }
+
         for (const move of moves) {
+            if (!inBounds(move.toX, move.toY)) {
+                abort();
+                return;
+            }
+            let sel: any;
+            if (move.type === 'board') {
+                if (!inBounds(move.fromX, move.fromY)) {
+                    abort();
+                    return;
+                }
+                const piece = GameState.board[move.fromY][move.fromX];
+                if (!piece || piece.owner !== GameState.turn) {
+                    abort();
+                    return;
+                }
+                sel = { type: 'board', x: move.fromX, y: move.fromY, piece };
+            } else {
+                if (!GameState.hands[GameState.turn].includes(move.piece)) {
+                    abort();
+                    return;
+                }
+                sel = { type: 'hand', pKey: move.piece };
+            }
+
+            if (!ShogiLogic.isLegalMove(sel, move.toX, move.toY, GameState.turn, GameState.board)) {
+                abort();
+                return;
+            }
+
             this.commitMoveInternal(move, true);
         }
         ShogiView.render(GameState);
