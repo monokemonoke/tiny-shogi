@@ -4,6 +4,7 @@ src/web/.wrangler/
 src/web/data/
 src/web/public/assets/*.mp3
 src/web/wrangler.private.toml
+src/web/wrangler.toml
 src/solver/target/
 src/solver/data/
 .DS_Store

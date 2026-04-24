@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import { Tween, Easing, Group } from '@tweenjs/tween.js';
+import html2canvas from 'html2canvas';
 
 // TWEEN v25 では明示的な Group が必要
 const tweenGroup = new Group();
@@ -774,10 +775,70 @@ const Main: any = {
         const params = new URLSearchParams(window.location.search);
         const m = params.get('m');
         if (!m) return;
-        const moves = KifuCodec.decode(m);
+        const MAX_KIFU_MOVES = 200;
+        let moves;
+        try {
+            moves = KifuCodec.decode(m);
+        } catch {
+            this.resetToInitialState();
+            return;
+        }
+        if (!Array.isArray(moves) || moves.length > MAX_KIFU_MOVES) {
+            this.resetToInitialState();
+            return;
+        }
+        const snapshotBoard = JSON.parse(JSON.stringify(GameState.board));
+        const snapshotHands = JSON.parse(JSON.stringify(GameState.hands));
+        const snapshotTurn = GameState.turn;
         for (const move of moves) {
+            if (!this.isValidUrlMove(move)) {
+                GameState.board = snapshotBoard;
+                GameState.hands = snapshotHands;
+                GameState.turn = snapshotTurn;
+                GameState.history = [];
+                GameState.moveRecords = [];
+                GameState.redoStack = [];
+                GameState.redoMoves = [];
+                const url = new URL(window.location.href);
+                url.searchParams.delete('m');
+                history.replaceState(null, '', url.toString());
+                ShogiView.render(GameState);
+                return;
+            }
             this.commitMoveInternal(move, true);
         }
+        ShogiView.render(GameState);
+    },
+
+    isValidUrlMove(move) {
+        if (!move || typeof move !== 'object') return false;
+        const inRange = (n) => Number.isInteger(n) && n >= 0 && n < CONFIG.COLS;
+        if (!inRange(move.toX) || !inRange(move.toY)) return false;
+        const turn = GameState.turn;
+        if (move.type === 'board') {
+            if (!inRange(move.fromX) || !inRange(move.fromY)) return false;
+            const piece = GameState.board[move.fromY][move.fromX];
+            if (!piece || piece.owner !== turn) return false;
+            const sel = { type: 'board', x: move.fromX, y: move.fromY, piece };
+            if (!ShogiLogic.isLegalMove(sel, move.toX, move.toY, turn, GameState.board)) return false;
+            return true;
+        }
+        if (move.type === 'hand') {
+            if (!['KIN', 'KAKU'].includes(move.piece)) return false;
+            if (GameState.hands[turn].indexOf(move.piece) === -1) return false;
+            const sel = { type: 'hand', pKey: move.piece, owner: turn, index: GameState.hands[turn].indexOf(move.piece) };
+            if (!ShogiLogic.isLegalMove(sel, move.toX, move.toY, turn, GameState.board)) return false;
+            return true;
+        }
+        return false;
+    },
+
+    resetToInitialState() {
+        GameState.reset();
+        ShogiLogic.initBoard(GameState);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('m');
+        history.replaceState(null, '', url.toString());
         ShogiView.render(GameState);
     },
 
@@ -2117,11 +2178,6 @@ const Main: any = {
         if (shareBtn) { shareBtn.disabled = true; shareBtn.textContent = "作成中..."; }
 
         try {
-            // @ts-ignore
-            if (typeof html2canvas === 'undefined') throw new Error("html2canvas not loaded");
-            
-            // Capture body (Board + Overlay)
-            // @ts-ignore
             const canvas = await html2canvas(document.body, {
                 useCORS: true,
                 backgroundColor: '#000000', // Ensure background is black if transparent

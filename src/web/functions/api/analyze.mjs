@@ -8,6 +8,61 @@ BigInt.prototype.toJSON = function () { return this.toString(); };
 const SENTE = 'sente';
 const GOTE = 'gote';
 const CONFIG = { ROWS: 4, COLS: 4 };
+const MAX_BODY_BYTES = 4096;
+const MAX_HAND_SIZE = 6;
+const MAX_NEXT_STATES = 200;
+const VALID_PIECE_TYPES = new Set(['OU', 'KIN', 'KAKU']);
+const VALID_HAND_PIECES = new Set(['KIN', 'KAKU']);
+
+function validateState(state) {
+    if (!state || typeof state !== 'object') return 'state must be an object';
+    if (state.turn !== SENTE && state.turn !== GOTE) return 'invalid turn';
+    if (!Array.isArray(state.board) || state.board.length !== CONFIG.ROWS) return 'invalid board shape';
+    for (let y = 0; y < CONFIG.ROWS; y++) {
+        const row = state.board[y];
+        if (!Array.isArray(row) || row.length !== CONFIG.COLS) return 'invalid row shape';
+        for (let x = 0; x < CONFIG.COLS; x++) {
+            const cell = row[x];
+            if (cell === null) continue;
+            if (!cell || typeof cell !== 'object') return 'invalid cell';
+            if (!VALID_PIECE_TYPES.has(cell.type)) return 'invalid piece type';
+            if (cell.owner !== SENTE && cell.owner !== GOTE) return 'invalid piece owner';
+            if (typeof cell.promoted !== 'boolean') return 'invalid promoted flag';
+        }
+    }
+    if (!state.hands || typeof state.hands !== 'object') return 'invalid hands';
+    for (const side of [SENTE, GOTE]) {
+        const hand = state.hands[side];
+        if (!Array.isArray(hand)) return 'invalid hand';
+        if (hand.length > MAX_HAND_SIZE) return 'hand too large';
+        for (const piece of hand) {
+            if (!VALID_HAND_PIECES.has(piece)) return 'invalid hand piece';
+        }
+    }
+    return null;
+}
+
+function resolveAllowedOrigin(request, env) {
+    const origin = request.headers.get('Origin');
+    if (!origin) return null;
+    const allowed = (env.ALLOWED_ORIGINS || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    return allowed.includes(origin) ? origin : null;
+}
+
+function buildCorsHeaders(allowedOrigin) {
+    const headers = {
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Vary': 'Origin',
+    };
+    if (allowedOrigin) {
+        headers['Access-Control-Allow-Origin'] = allowedOrigin;
+    }
+    return headers;
+}
 const PIECE_TYPES = {
     OU: { name: '王', moves: [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] },
     KIN: { name: '金', moves: [[0, -1], [1, -1], [-1, -1], [1, 0], [-1, 0], [0, 1]] },
@@ -257,31 +312,50 @@ function applyMove(state, moveObj, tx, ty, promote) {
     return newState;
 }
 
-// Main handler
 // Main handler for POST requests
 export async function onRequestPost({ request, env }) {
-    // CORS headers
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-    };
+    const allowedOrigin = resolveAllowedOrigin(request, env);
+    const corsHeaders = buildCorsHeaders(allowedOrigin);
+    const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
+
+    const contentLength = Number(request.headers.get('Content-Length') || 0);
+    if (contentLength > MAX_BODY_BYTES) {
+        return new Response(JSON.stringify({ error: 'Payload too large' }), {
+            status: 413,
+            headers: jsonHeaders,
+        });
+    }
+
+    let body;
+    try {
+        body = await request.json();
+    } catch {
+        return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+            status: 400,
+            headers: jsonHeaders,
+        });
+    }
+
+    const state = body && body.state;
+    const validationError = validateState(state);
+    if (validationError) {
+        return new Response(JSON.stringify({ error: `Invalid state: ${validationError}` }), {
+            status: 400,
+            headers: jsonHeaders,
+        });
+    }
 
     try {
-        const { state } = await request.json();
-
-        // Calculate current hash
-        const currentHash = HashCalc.calcHash(state);
-        const currentHashStr = HashCalc.hashToString(currentHash);
-
-        console.log(`[Analyze] Processing hash: ${currentHashStr}`);
+        const currentHashStr = HashCalc.hashToString(HashCalc.calcHash(state));
 
         if (!env.DB) {
             console.error('[Analyze] env.DB is missing!');
-            throw new Error('Database binding (env.DB) is missing');
+            return new Response(JSON.stringify({ error: 'Internal server error' }), {
+                status: 500,
+                headers: jsonHeaders,
+            });
         }
 
-        // Fetch current evaluation from D1
         let currentResult;
         try {
             currentResult = await env.DB.prepare(
@@ -289,17 +363,24 @@ export async function onRequestPost({ request, env }) {
             ).bind(currentHashStr).first();
         } catch (dbErr) {
             console.error(`[Analyze] DB Read Error for hash ${currentHashStr}:`, dbErr);
-            // Re-throw with clear message
-            throw new Error(`DB Read failed: ${dbErr.message}`);
+            return new Response(JSON.stringify({ error: 'Internal server error' }), {
+                status: 500,
+                headers: jsonHeaders,
+            });
         }
 
         const currentEval = currentResult ? JSON.parse(currentResult.value) : 'Unknown';
 
-        // Generate next states
         const nextStates = generateNextStates(state);
+        if (nextStates.length > MAX_NEXT_STATES) {
+            console.error(`[Analyze] Too many next states: ${nextStates.length}`);
+            return new Response(JSON.stringify({ error: 'Internal server error' }), {
+                status: 500,
+                headers: jsonHeaders,
+            });
+        }
         const nextHashes = nextStates.map(s => HashCalc.hashToString(HashCalc.calcHash(s)));
 
-        // Fetch all evaluations in one query
         let moveResults = [];
         if (nextHashes.length > 0) {
             const placeholders = nextHashes.map(() => '?').join(',');
@@ -309,14 +390,12 @@ export async function onRequestPost({ request, env }) {
             moveResults = results || [];
         }
 
-        // Create hash -> result map
         const resultMap = {};
         for (const row of moveResults) {
             resultMap[row.hash] = JSON.parse(row.value);
         }
 
-        // Build response
-        const nextMoves = nextHashes.map((hash, i) => ({
+        const nextMoves = nextHashes.map((hash) => ({
             hash,
             result: resultMap[hash] || 'Unknown'
         }));
@@ -327,24 +406,22 @@ export async function onRequestPost({ request, env }) {
             hash: currentHashStr,
             next_moves: nextMoves
         }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            headers: jsonHeaders,
         });
 
     } catch (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error('[Analyze] Unhandled error:', error);
+        return new Response(JSON.stringify({ error: 'Internal server error' }), {
             status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            headers: jsonHeaders,
         });
     }
 }
 
 // Handler for OPTIONS requests (CORS Preflight)
-export async function onRequestOptions() {
+export async function onRequestOptions({ request, env }) {
+    const allowedOrigin = resolveAllowedOrigin(request, env);
     return new Response(null, {
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-        }
+        headers: buildCorsHeaders(allowedOrigin),
     });
 }
