@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import { Tween, Easing, Group } from '@tweenjs/tween.js';
+import html2canvas from 'html2canvas';
 
 // TWEEN v25 では明示的な Group が必要
 const tweenGroup = new Group();
@@ -2122,11 +2123,7 @@ const Main: any = {
         if (shareBtn) { shareBtn.disabled = true; shareBtn.textContent = "作成中..."; }
 
         try {
-            // @ts-ignore
-            if (typeof html2canvas === 'undefined') throw new Error("html2canvas not loaded");
-            
             // Capture body (Board + Overlay)
-            // @ts-ignore
             const canvas = await html2canvas(document.body, {
                 useCORS: true,
                 backgroundColor: '#000000', // Ensure background is black if transparent
