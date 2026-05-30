@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>棋譜解説 - Tiny 将棋</title>
+    <meta property="og:title" content="棋譜解説 - Tiny 将棋">
+    <meta property="og:description" content="Tiny 将棋の棋譜を完全解析DBと局面差分で振り返ります。">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #101010;
+            color: #4E342E;
+            font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+        }
+
+        #board-root {
+            position: fixed;
+            inset: 0;
+        }
+
+        #explain-panel {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            width: 360px;
+            max-width: calc(100vw - 28px);
+            max-height: calc(100vh - 28px);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #D7CCC8;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(6px);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 14px;
+            border-bottom: 1px solid #D7CCC8;
+            background: rgba(109, 76, 65, 0.05);
+        }
+
+        .panel-header h1 {
+            margin: 0;
+            font-size: 1.08rem;
+            color: #4E342E;
+        }
+
+        .back-link {
+            flex-shrink: 0;
+            color: #6D4C41;
+            text-decoration: none;
+            border: 1px solid #6D4C41;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 0.82rem;
+        }
+
+        .panel-content {
+            overflow-y: auto;
+            padding: 12px 14px 14px;
+        }
+
+        .status {
+            margin-bottom: 10px;
+            font-size: 0.88rem;
+            color: #6D4C41;
+        }
+
+        .selected-detail {
+            margin-bottom: 12px;
+            padding: 10px;
+            border: 1px solid #D7CCC8;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.72);
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .selected-title {
+            font-weight: bold;
+            color: #5D4037;
+            margin-bottom: 4px;
+        }
+
+        .section-title {
+            margin: 12px 0 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #5D4037;
+        }
+
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .explain-item,
+        .move-item {
+            width: 100%;
+            text-align: left;
+            padding: 8px 9px;
+            border: 1px solid #D7CCC8;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.82);
+            color: #4E342E;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .explain-item {
+            border-color: #FFB74D;
+            background: #FFF3E0;
+        }
+
+        .move-item.is-selected {
+            color: #fff;
+            background: #6D4C41;
+            border-color: #6D4C41;
+        }
+
+        .move-item.has-explanation {
+            border-color: #FFB74D;
+        }
+
+        .item-title {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .item-message {
+            display: block;
+            font-size: 0.84rem;
+            line-height: 1.42;
+        }
+
+        @media (max-width: 768px), (max-aspect-ratio: 9/10) {
+            #explain-panel {
+                top: auto;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                max-width: none;
+                max-height: 46vh;
+                border-right: none;
+                border-left: none;
+                border-bottom: none;
+                border-radius: 12px 12px 0 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="board-root"></div>
+    <aside id="explain-panel">
+        <div class="panel-header">
+            <h1>棋譜解説</h1>
+            <a class="back-link" href="game.html">対局へ</a>
+        </div>
+        <div class="panel-content">
+            <div id="status" class="status">棋譜を読み込み中...</div>
+            <div id="selected-detail" class="selected-detail"></div>
+
+            <div class="section-title">悪手一覧</div>
+            <div id="explanation-list" class="item-list"></div>
+
+            <div class="section-title">棋譜</div>
+            <div id="move-list" class="item-list"></div>
+        </div>
+    </aside>
+    <script type="module" src="./explain.ts"></script>
+</body>
+
+</html>

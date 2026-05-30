@@ -40,7 +40,6 @@ type EvalDisplay = {
     solveLabel: string;
     headlineLabel: string;
 };
-
 interface WinRateMapper {
     toPercentFromPly(ply: number): number;
 }
@@ -1110,6 +1109,13 @@ const Main: any = {
 
     resetGameFromUI() {
         window.location.href = './game.html';
+    },
+
+    openExplanationPage() {
+        const encoded = KifuCodec.encode(GameState.moveRecords);
+        const url = new URL('./explain.html', window.location.href);
+        if (encoded) url.searchParams.set('m', encoded);
+        window.location.href = url.toString();
     },
 
     // 棋譜リストをUIに反映

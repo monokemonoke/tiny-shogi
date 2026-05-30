@@ -10,6 +10,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         game: resolve(__dirname, 'game.html'),
+        explain: resolve(__dirname, 'explain.html'),
         rules: resolve(__dirname, 'rules.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         credits: resolve(__dirname, 'credits.html'),
@@ -17,8 +18,11 @@ export default defineConfig({
         sprint: resolve(__dirname, 'sprint.html'),
       },
       output: {
-        manualChunks: {
-          three: ['three'],
+        manualChunks(id) {
+          if (id.includes('/node_modules/three/')) {
+            return 'three';
+          }
+          return undefined;
         },
       },
     },
