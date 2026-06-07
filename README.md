@@ -6,6 +6,7 @@
 
 - `src/solver`: Rust 実装（状態生成、後退解析、SQLite 出力）
 - `src/web`: TypeScript/HTML アプリ + Cloudflare Pages Functions
+- `src/mcp`: ローカル `lookup.db` 直結の Tiny 将棋解析 MCP server
 
 ## ローカルで動かす
 

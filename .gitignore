@@ -1,5 +1,7 @@
 src/web/node_modules/
 src/web/dist/
+src/mcp/node_modules/
+src/mcp/dist/
 src/web/.wrangler/
 src/web/data/
 src/web/public/assets/*.mp3
