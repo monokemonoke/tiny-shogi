@@ -1,10 +1,13 @@
 src/web/node_modules/
 src/web/dist/
+src/mcp/node_modules/
+src/mcp/dist/
 src/web/.wrangler/
 src/web/data/
 src/web/public/assets/*.mp3
 src/web/wrangler.private.toml
 src/solver/target/
+src/mcp-go/mcp-go
 src/solver/data/
 .DS_Store
 *.log
